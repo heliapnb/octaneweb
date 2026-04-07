@@ -210,10 +210,16 @@ function runGermlineLogic() {
 
     // Step 3 (notes 1–4) + Step 7 (notes 10–16): context-gated
     if (contextGenes[gene]) {
+        const noneChecked = document.getElementById('ctxNone')?.checked || false;
         if (anyCtx) return render("RECOMMENDED", "green", "fa-user-check",
             "Clinical context met for germline confirmation.",
             contextRationale[gene] || `${gene} germline conversion rate is context-dependent. Selected clinical context supports germline confirmation.`,
             [REFS.kuzbari, REFS.ricker]
+        );
+        if (noneChecked) return render("NOT OFFERED", "red", "fa-ban",
+            "No applicable clinical context identified.",
+            `${gene} germline conversion rate is context-dependent. Without a matching clinical context, germline confirmation is not recommended per ESMO 2022 guidelines.`,
+            [REFS.kuzbari]
         );
         return render("REVIEW CONTEXT", "slate", "fa-search",
             "Select all applicable clinical contexts above.",
