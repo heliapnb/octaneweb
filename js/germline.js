@@ -117,8 +117,9 @@ function updateContextDisplay() {
         context.classList.remove('hidden');
         context.innerHTML = `<p class="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2">Select all applicable clinical contexts</p>`;
         contextGenes[gene].forEach(c => {
-            context.innerHTML += `<label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer"><input type="checkbox" class="ctx-check w-4 h-4" value="${c}" onchange="runGermlineLogic()"> ${c}</label>`;
+            context.innerHTML += `<label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer"><input type="checkbox" class="ctx-check w-4 h-4" value="${c}" onchange="const n=document.getElementById('ctxNone'); if(n)n.checked=false; runGermlineLogic()"> ${c}</label>`;
         });
+        context.innerHTML += `<label class="flex items-center gap-2 text-xs font-bold text-slate-400 cursor-pointer mt-1 pt-2 border-t border-blue-200"><input type="checkbox" id="ctxNone" class="w-4 h-4" onchange="handleCtxNone(this)"> None of the above</label>`;
         return;
     }
 
@@ -151,6 +152,13 @@ function updateContextDisplay() {
     if (step8Genes.includes(gene)) {
         ageSection.classList.remove('hidden');
     }
+}
+
+function handleCtxNone(noneCheckbox) {
+    if (noneCheckbox.checked) {
+        document.querySelectorAll('.ctx-check').forEach(c => { c.checked = false; });
+    }
+    runGermlineLogic();
 }
 
 function runGermlineLogic() {
