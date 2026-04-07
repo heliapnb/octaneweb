@@ -425,6 +425,14 @@ async function lookupVariant() {
                    class="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">
                    <i class="fas fa-external-link-alt"></i> View full record on ClinVar
                 </a>
+                ${overallClass.toLowerCase().includes('conflicting') ? `
+                <div class="pt-2 border-t border-slate-200">
+                    <p class="text-xs text-slate-500 mb-2">Conflicting interpretations on ClinVar — check Franklin for an alternative classification:</p>
+                    <a href="https://franklin.genoox.com/clinical-db/home" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 transition-all uppercase tracking-widest">
+                       <i class="fas fa-external-link-alt"></i> Open Franklin
+                    </a>
+                </div>` : ''}
             </div>`;
 
     } catch (err) {
