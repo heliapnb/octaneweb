@@ -539,6 +539,11 @@ function proceedToGermlineLogic() {
     runGermlineLogic();
 }
 
+function bypassLookup() {
+    document.getElementById('dbResults')?.classList.add('hidden');
+    proceedToGermlineLogic();
+}
+
 function renderNotRecommended(message) {
     const gene = document.getElementById('gGene').value.toUpperCase().trim();
     const coding = document.getElementById('gCoding').value.trim();
