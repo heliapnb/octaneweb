@@ -432,15 +432,26 @@ async function lookupVariant() {
             return;
         }
 
-        const overallClass = variant.germline_classification?.description
-            || variant.clinical_significance?.description
-            || 'Not classified';
+        // Confirm the returned variant actually matches the entered cDNA — reject loose matches
+        const variantTitle = (variant.title || variant.variation_name || '').toLowerCase();
+        const codingNorm = coding.toLowerCase().replace(/\s/g, '');
+        if (!variantTitle.includes(codingNorm)) {
+            showExternalLookup(gene, coding, dbContent, dbStatus, 'none');
+            return;
+        }
+
+        // Only use germline classification — do not fall back to somatic/overall significance
+        const overallClass = variant.germline_classification?.description || '';
+        if (!overallClass) {
+            showExternalLookup(gene, coding, dbContent, dbStatus, 'none');
+            return;
+        }
 
         const scvs = variant.supporting_submissions?.scv || [];
         const counts = {};
         scvs.forEach(scv => {
-            const cls = scv.germline_classification || scv.classification || 'Unknown';
-            counts[cls] = (counts[cls] || 0) + 1;
+            const cls = scv.germline_classification;
+            if (cls) counts[cls] = (counts[cls] || 0) + 1;
         });
         const total = scvs.length;
         const submissionSummary = Object.entries(counts)
