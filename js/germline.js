@@ -73,10 +73,17 @@ function handleGermlineChange() {
     const details = document.getElementById('gDetails');
     if (!geneEl) return;
     const gene = geneEl.value.toUpperCase().trim();
+
+    // Reset downstream sections when gene changes
+    document.getElementById('dbResults')?.classList.add('hidden');
+    document.getElementById('gPostPLP')?.classList.add('hidden');
+    const empty = document.getElementById('gEmptyState');
+    const resultContent = document.getElementById('gResultContent');
+    if (empty) empty.classList.remove('hidden');
+    if (resultContent) { resultContent.classList.add('hidden'); resultContent.innerHTML = ''; }
+
     if (!gene) { if (details) details.classList.add('hidden'); return; }
     if (details) details.classList.remove('hidden');
-    updateContextDisplay();
-    runGermlineLogic();
 }
 
 function updateContextDisplay() {
@@ -365,6 +372,15 @@ function render(rec, color, icon, sub, rationale, refs) {
 
 // --- CLINVAR / FRANKLIN LOOKUP ---
 
+function classifySignificance(overallClass) {
+    const cls = overallClass.toLowerCase();
+    if (cls.includes('conflicting')) return 'conflicting';
+    if (cls.includes('uncertain') || cls.includes('vus')) return 'vus';
+    if (cls.includes('benign')) return 'benign';
+    if (cls.includes('pathogenic')) return 'plp';
+    return 'unknown';
+}
+
 async function lookupVariant() {
     const gene = document.getElementById('gGene').value.toUpperCase().trim();
     const coding = document.getElementById('gCoding').value.trim();
@@ -380,27 +396,31 @@ async function lookupVariant() {
         return;
     }
 
+    // Reset downstream state
+    document.getElementById('gPostPLP')?.classList.add('hidden');
+    const empty = document.getElementById('gEmptyState');
+    const resultContent = document.getElementById('gResultContent');
+    if (empty) empty.classList.remove('hidden');
+    if (resultContent) { resultContent.classList.add('hidden'); resultContent.innerHTML = ''; }
+
     dbResults.classList.remove('hidden');
     dbStatus.textContent = "Searching ClinVar...";
     dbStatus.className = "px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest";
     dbContent.innerHTML = `<div class="h-8 rounded-xl bg-slate-100 animate-pulse"></div><div class="h-8 rounded-xl bg-slate-100 animate-pulse mt-2"></div>`;
 
     try {
-        // Step 1: Search ClinVar by gene + cDNA notation
         const searchTerm = encodeURIComponent(`${gene}[gene] ${coding}`);
         const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=clinvar&term=${searchTerm}&retmode=json&retmax=5`;
-
         const searchResp = await fetch(searchUrl);
         if (!searchResp.ok) throw new Error('ClinVar search request failed');
         const searchData = await searchResp.json();
         const ids = searchData.esearchresult?.idlist || [];
 
         if (ids.length === 0) {
-            showFranklinFallback(gene, coding, dbContent, dbStatus);
+            showExternalLookup(gene, coding, dbContent, dbStatus, 'none');
             return;
         }
 
-        // Step 2: Get variant summary from ClinVar
         const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=${ids[0]}&retmode=json`;
         const summaryResp = await fetch(summaryUrl);
         if (!summaryResp.ok) throw new Error('ClinVar summary request failed');
@@ -408,31 +428,29 @@ async function lookupVariant() {
         const variant = summaryData.result?.[ids[0]];
 
         if (!variant) {
-            showFranklinFallback(gene, coding, dbContent, dbStatus);
+            showExternalLookup(gene, coding, dbContent, dbStatus, 'none');
             return;
         }
 
-        // Extract overall germline classification
         const overallClass = variant.germline_classification?.description
             || variant.clinical_significance?.description
             || 'Not classified';
 
-        // Count individual submissions by classification
         const scvs = variant.supporting_submissions?.scv || [];
         const counts = {};
         scvs.forEach(scv => {
             const cls = scv.germline_classification || scv.classification || 'Unknown';
             counts[cls] = (counts[cls] || 0) + 1;
         });
-
         const total = scvs.length;
         const submissionSummary = Object.entries(counts)
             .map(([cls, n]) => `<span class="font-black">${n}×</span> ${cls}`)
             .join(' &nbsp;·&nbsp; ');
-
         const clinvarUrl = `https://www.ncbi.nlm.nih.gov/clinvar/variation/${ids[0]}/`;
         const classColor = getClassColor(overallClass);
+        const significance = classifySignificance(overallClass);
 
+        // Show ClinVar result card
         dbStatus.textContent = "ClinVar";
         dbStatus.className = "px-3 py-1 bg-blue-100 rounded-full text-[10px] font-black text-blue-700 uppercase tracking-widest";
         dbContent.innerHTML = `
@@ -449,15 +467,16 @@ async function lookupVariant() {
                    class="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">
                    <i class="fas fa-external-link-alt"></i> View full record on ClinVar
                 </a>
-                ${overallClass.toLowerCase().includes('conflicting') ? `
-                <div class="pt-2 border-t border-slate-200">
-                    <p class="text-xs text-slate-500 mb-2">Conflicting interpretations on ClinVar — check Franklin for an alternative classification:</p>
-                    <a href="https://franklin.genoox.com/clinical-db/home" target="_blank" rel="noopener noreferrer"
-                       class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 transition-all uppercase tracking-widest">
-                       <i class="fas fa-external-link-alt"></i> Open Franklin
-                    </a>
-                </div>` : ''}
             </div>`;
+
+        if (significance === 'plp') {
+            proceedToGermlineLogic();
+        } else if (significance === 'vus' || significance === 'benign') {
+            renderNotRecommended(`ClinVar classifies this variant as <strong>${overallClass}</strong>. Germline confirmation testing is not recommended for variants classified as VUS or benign/likely benign.`);
+        } else {
+            // conflicting or unknown — append external lookup + P/LP decision buttons
+            showExternalLookup(gene, coding, dbContent, dbStatus, 'conflicting');
+        }
 
     } catch (err) {
         dbStatus.textContent = "Error";
@@ -466,19 +485,76 @@ async function lookupVariant() {
     }
 }
 
-function showFranklinFallback(gene, coding, dbContent, dbStatus) {
-    const franklinUrl = `https://franklin.genoox.com/clinical-db/home`;
-    dbStatus.textContent = "No ClinVar Data";
-    dbStatus.className = "px-3 py-1 bg-amber-100 rounded-full text-[10px] font-black text-amber-700 uppercase tracking-widest";
-    dbContent.innerHTML = `
-        <div class="space-y-3">
-            <p class="text-sm font-bold text-slate-700">No ClinVar submissions found for <span class="font-mono">${gene} ${coding}</span>.</p>
-            <p class="text-xs text-slate-500">Check Franklin (Genoox) for an alternative germline classification. Search for <span class="font-mono font-bold">${gene} ${coding}</span> on Franklin:</p>
-            <a href="${franklinUrl}" target="_blank" rel="noopener noreferrer"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 transition-all uppercase tracking-widest">
-               <i class="fas fa-external-link-alt"></i> Open Franklin
-            </a>
+function showExternalLookup(gene, coding, dbContent, dbStatus, reason) {
+    const isNone = reason === 'none';
+    const introText = isNone
+        ? `No ClinVar submissions found for <span class="font-mono font-bold">${gene} ${coding}</span>.`
+        : `ClinVar shows conflicting classifications for <span class="font-mono font-bold">${gene} ${coding}</span>.`;
+
+    if (isNone) {
+        dbStatus.textContent = "No ClinVar Data";
+        dbStatus.className = "px-3 py-1 bg-amber-100 rounded-full text-[10px] font-black text-amber-700 uppercase tracking-widest";
+        dbContent.innerHTML = '';
+    }
+
+    dbContent.innerHTML += `
+        <div class="space-y-4 ${isNone ? '' : 'pt-3 border-t border-slate-200 mt-3'}">
+            <p class="text-sm font-bold text-slate-700">${introText}</p>
+            <p class="text-xs text-slate-500">Check Franklin and Varsome for an alternative germline classification, then indicate the result below:</p>
+            <div class="flex gap-2">
+                <a href="https://franklin.genoox.com/clinical-db/home" target="_blank" rel="noopener noreferrer"
+                   class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 transition-all uppercase tracking-widest">
+                   <i class="fas fa-external-link-alt"></i> Franklin
+                </a>
+                <a href="https://varsome.com/" target="_blank" rel="noopener noreferrer"
+                   class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 transition-all uppercase tracking-widest">
+                   <i class="fas fa-external-link-alt"></i> Varsome
+                </a>
+            </div>
+            <div class="pt-2 border-t border-slate-200">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Classification on Franklin / Varsome</p>
+                <div class="flex gap-2">
+                    <button onclick="userConfirmsPLP()" class="flex-1 py-3 bg-green-600 text-white text-xs font-black rounded-lg hover:bg-green-700 transition-all uppercase tracking-widest">
+                        <i class="fas fa-check mr-1"></i> P / LP
+                    </button>
+                    <button onclick="userDeniesPLP()" class="flex-1 py-3 bg-red-500 text-white text-xs font-black rounded-lg hover:bg-red-600 transition-all uppercase tracking-widest">
+                        <i class="fas fa-times mr-1"></i> Not P / LP
+                    </button>
+                </div>
+            </div>
         </div>`;
+}
+
+function userConfirmsPLP() {
+    proceedToGermlineLogic();
+}
+
+function userDeniesPLP() {
+    renderNotRecommended('Variant is not classified as pathogenic or likely pathogenic on Franklin or Varsome. Germline confirmation testing is not recommended.');
+}
+
+function proceedToGermlineLogic() {
+    document.getElementById('gPostPLP')?.classList.remove('hidden');
+    updateContextDisplay();
+    runGermlineLogic();
+}
+
+function renderNotRecommended(message) {
+    const gene = document.getElementById('gGene').value.toUpperCase().trim();
+    const coding = document.getElementById('gCoding').value.trim();
+    const empty = document.getElementById('gEmptyState');
+    const resultContent = document.getElementById('gResultContent');
+    if (empty) empty.classList.add('hidden');
+    if (resultContent) {
+        resultContent.classList.remove('hidden');
+        resultContent.innerHTML = `
+            <div class="bg-slate-50 border-slate-400 border-4 rounded-3xl p-10 h-full flex flex-col items-center justify-center text-center shadow-xl animate-fade-in">
+                <i class="fas fa-ban fa-4xl text-slate-500 mb-6"></i>
+                <h3 class="text-3xl font-black text-slate-800 uppercase">Germline Confirmation:<br>NOT RECOMMENDED</h3>
+                <p class="text-sm text-slate-600 mt-4 max-w-lg">${message}</p>
+                <div class="mt-6 px-6 py-3 bg-white border rounded-xl font-mono font-bold text-slate-800">${gene} ${coding}</div>
+            </div>`;
+    }
 }
 
 function getClassColor(classification) {
