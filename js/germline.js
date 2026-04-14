@@ -130,6 +130,7 @@ function updateContextDisplay() {
             multiVariantSection.classList.remove('hidden');
             const label = document.getElementById('gMultiVariantLabel');
             if (label) label.textContent = `2 or more reported P/LP variants identified in ${gene}`;
+            if (gene === "APC") ageSection.classList.remove('hidden');
         }
         return;
     }
@@ -255,10 +256,19 @@ function runGermlineLogic() {
             "The presence of 2 or more pathogenic/likely pathogenic variants in APC substantially increases germline probability over somatic. APC overall germline conversion rate is 1.1%, but biallelic findings are a strong indicator of germline predisposition.",
             [REFS.amp, REFS.kuzbari]
         );
-        return render("NOT OFFERED", "red", "fa-ban",
+        if (ageUnder30) return render("RECOMMENDED", "green", "fa-check-circle",
+            "Tumour diagnosed at ≤30 years of age.",
+            "ESMO 2022 recommends germline confirmation for APC variants in patients diagnosed at or below 30 years of age, as germline probability is substantially elevated in early-onset presentations.",
+            [REFS.kuzbari]
+        );
+        if (ageInput !== '' && !ageUnder30) return render("NOT OFFERED", "red", "fa-ban",
             "APC variant does not meet criteria for germline confirmation.",
-            "APC has only 1.1% overall germline conversion rate due to its very high somatic mutation frequency in colorectal tumors. Confirmation is reserved for the known founder variant (c.3920T>A) or biallelic P/LP findings.",
+            "APC has only 1.1% overall germline conversion rate due to its very high somatic mutation frequency in colorectal tumors. Confirmation is reserved for the known founder variant (c.3920T>A), biallelic P/LP findings, or diagnosis at ≤30 years of age.",
             [REFS.kuzbari, REFS.klek]
+        );
+        return render("REVIEW CONTEXT", "slate", "fa-search",
+            "Enter patient age and/or check applicable criteria above.",
+            null, null
         );
     }
 
