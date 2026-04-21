@@ -86,6 +86,43 @@ function handleGermlineChange() {
     if (details) details.classList.remove('hidden');
 }
 
+// Stores the Yes/No answer for context-gated genes; reset on each new lookup/gene change
+window.germlineContextAnswer = null;
+
+function setContextAnswer(val) {
+    window.germlineContextAnswer = val;
+    // Highlight the active button
+    const yesBtn = document.getElementById('ctxYesBtn');
+    const noBtn  = document.getElementById('ctxNoBtn');
+    if (yesBtn && noBtn) {
+        yesBtn.className = val === 'yes'
+            ? 'flex-1 py-3 bg-green-600 text-white text-xs font-black rounded-lg uppercase tracking-widest ring-2 ring-green-400'
+            : 'flex-1 py-3 bg-white border-2 border-slate-300 text-slate-500 text-xs font-black rounded-lg uppercase tracking-widest hover:border-green-400 hover:text-green-700 transition-all';
+        noBtn.className = val === 'no'
+            ? 'flex-1 py-3 bg-red-500 text-white text-xs font-black rounded-lg uppercase tracking-widest ring-2 ring-red-300'
+            : 'flex-1 py-3 bg-white border-2 border-slate-300 text-slate-500 text-xs font-black rounded-lg uppercase tracking-widest hover:border-red-400 hover:text-red-600 transition-all';
+    }
+    runGermlineLogic();
+}
+
+function renderContextPanel(title, criteria) {
+    const bullets = criteria.map(c => `<li>${c}</li>`).join('');
+    return `
+        <p class="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2">${title}</p>
+        <ul class="text-xs text-slate-600 font-semibold space-y-1 list-disc list-inside mb-4">${bullets}</ul>
+        <p class="text-xs text-slate-500 mb-2">Does this case meet one or more of the above criteria?</p>
+        <div class="flex gap-2">
+            <button id="ctxYesBtn" onclick="setContextAnswer('yes')"
+                class="flex-1 py-3 bg-white border-2 border-slate-300 text-slate-500 text-xs font-black rounded-lg uppercase tracking-widest hover:border-green-400 hover:text-green-700 transition-all">
+                <i class="fas fa-check mr-1"></i> Yes
+            </button>
+            <button id="ctxNoBtn" onclick="setContextAnswer('no')"
+                class="flex-1 py-3 bg-white border-2 border-slate-300 text-slate-500 text-xs font-black rounded-lg uppercase tracking-widest hover:border-red-400 hover:text-red-600 transition-all">
+                <i class="fas fa-times mr-1"></i> No
+            </button>
+        </div>`;
+}
+
 function updateContextDisplay() {
     const geneEl = document.getElementById('gGene');
     const codingEl = document.getElementById('gCoding');
@@ -97,7 +134,8 @@ function updateContextDisplay() {
     const gene = geneEl.value.toUpperCase().trim();
     const coding = codingEl ? codingEl.value.trim() : '';
 
-    // Reset all dynamic sections
+    // Reset all dynamic sections and context answer
+    window.germlineContextAnswer = null;
     if (context) { context.innerHTML = ''; context.classList.add('hidden'); }
     if (ageSection) ageSection.classList.add('hidden');
     if (multiVariantSection) {
@@ -108,25 +146,23 @@ function updateContextDisplay() {
 
     if (!gene) return;
 
-    // VHL: show RCC context checkbox (note 5)
+    // VHL: context panel — RCC makes it NOT recommended; any other context is fine
     if (gene === "VHL") {
         context.classList.remove('hidden');
-        context.innerHTML = `
-            <p class="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2">Clinical Context</p>
-            <label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer">
-                <input type="checkbox" class="ctx-check w-4 h-4" value="Renal Cell Carcinoma" onchange="runGermlineLogic()"> Renal Cell Carcinoma
-            </label>`;
+        context.innerHTML = renderContextPanel(
+            "Clinical Context — VHL",
+            ["Renal Cell Carcinoma"]
+        );
         return;
     }
 
-    // Context-gated genes: show applicable context checkboxes
+    // Context-gated genes: show criteria as bullet list with Yes/No
     if (contextGenes[gene]) {
         context.classList.remove('hidden');
-        context.innerHTML = `<p class="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2">Select all applicable clinical contexts</p>`;
-        contextGenes[gene].forEach(c => {
-            context.innerHTML += `<label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer"><input type="checkbox" class="ctx-check w-4 h-4" value="${c}" onchange="const n=document.getElementById('ctxNone'); if(n)n.checked=false; runGermlineLogic()"> ${c}</label>`;
-        });
-        context.innerHTML += `<label class="flex items-center gap-2 text-xs font-bold text-slate-400 cursor-pointer mt-1 pt-2 border-t border-blue-200"><input type="checkbox" id="ctxNone" class="w-4 h-4" onchange="handleCtxNone(this)"> None of the above</label>`;
+        context.innerHTML = renderContextPanel(
+            `Clinical contexts supporting germline confirmation — ${gene}`,
+            contextGenes[gene]
+        );
         return;
     }
 
@@ -142,15 +178,14 @@ function updateContextDisplay() {
         return;
     }
 
-    // EGFR: show TKI context if specific variant entered; always show age section (note 7)
+    // EGFR: context panel for TKI naïve if specific variant; always show age section
     if (gene === "EGFR") {
         if (coding.includes("c.2369C>T")) {
             context.classList.remove('hidden');
-            context.innerHTML = `
-                <p class="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2">Clinical Context</p>
-                <label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer">
-                    <input type="checkbox" class="ctx-check w-4 h-4" value="TKI Treatment-Naïve" onchange="runGermlineLogic()"> TKI Treatment-Naïve
-                </label>`;
+            context.innerHTML = renderContextPanel(
+                "Clinical Context — EGFR c.2369C>T",
+                ["Patient is TKI Treatment-Naïve"]
+            );
         }
         ageSection.classList.remove('hidden');
         return;
@@ -160,13 +195,6 @@ function updateContextDisplay() {
     if (step8Genes.includes(gene)) {
         ageSection.classList.remove('hidden');
     }
-}
-
-function handleCtxNone(noneCheckbox) {
-    if (noneCheckbox.checked) {
-        document.querySelectorAll('.ctx-check').forEach(c => { c.checked = false; });
-    }
-    runGermlineLogic();
 }
 
 function runGermlineLogic() {
@@ -182,7 +210,8 @@ function runGermlineLogic() {
     const coding = codingEl.value.trim();
     const ageInput = ageEl ? ageEl.value.trim() : '';
     const ageUnder30 = ageInput !== '' && parseInt(ageInput) <= 30;
-    const anyCtx = Array.from(document.querySelectorAll('.ctx-check')).some(c => c.checked);
+    const ctxYes = window.germlineContextAnswer === 'yes';
+    const ctxNo  = window.germlineContextAnswer === 'no';
     const multiVariantChecked = document.getElementById('gMultiVariant')?.checked || false;
 
     if (!gene) {
@@ -204,33 +233,36 @@ function runGermlineLogic() {
 
     // VHL: RECOMMENDED unless RCC context (note 5)
     if (gene === "VHL") {
-        if (anyCtx) return render("NOT OFFERED", "red", "fa-ban",
+        if (ctxYes) return render("NOT OFFERED", "red", "fa-ban",
             "VHL confirmation not recommended for Renal Cell Carcinoma.",
             "VHL has only 1.5% germline conversion rate in renal cell carcinoma, due to the very high frequency of somatic VHL mutations in RCC. Germline confirmation is not recommended in this context.",
             [REFS.kuzbari]
         );
-        return render("RECOMMENDED", "green", "fa-check-circle",
+        if (ctxNo) return render("RECOMMENDED", "green", "fa-check-circle",
             "Recommended in non-RCC clinical contexts.",
             "VHL has 59.4% germline conversion rate in non-RCC tumors, supporting germline confirmation outside of renal cell carcinoma.",
             [REFS.kuzbari]
+        );
+        return render("REVIEW CONTEXT", "slate", "fa-search",
+            "Please answer the clinical context question above.",
+            null, null
         );
     }
 
     // Step 3 (notes 1–4) + Step 7 (notes 10–16): context-gated
     if (contextGenes[gene]) {
-        const noneChecked = document.getElementById('ctxNone')?.checked || false;
-        if (anyCtx) return render("RECOMMENDED", "green", "fa-user-check",
+        if (ctxYes) return render("RECOMMENDED", "green", "fa-user-check",
             "Clinical context met for germline confirmation.",
             contextRationale[gene] || `${gene} germline conversion rate is context-dependent. Selected clinical context supports germline confirmation.`,
             [REFS.kuzbari, REFS.ricker]
         );
-        if (noneChecked) return render("NOT OFFERED", "red", "fa-ban",
+        if (ctxNo) return render("NOT OFFERED", "red", "fa-ban",
             "No applicable clinical context identified.",
             `${gene} germline conversion rate is context-dependent. Without a matching clinical context, germline confirmation is not recommended per ESMO 2022 guidelines.`,
             [REFS.kuzbari]
         );
         return render("REVIEW CONTEXT", "slate", "fa-search",
-            "Select all applicable clinical contexts above.",
+            "Please answer the clinical context question above.",
             null, null
         );
     }
@@ -317,7 +349,7 @@ function runGermlineLogic() {
     }
 
     // EGFR: c.2369C>T + TKI treatment-naïve → RECOMMENDED (note 7); else fall to Step 8
-    if (gene === "EGFR" && coding.includes("c.2369C>T") && anyCtx) {
+    if (gene === "EGFR" && coding.includes("c.2369C>T") && ctxYes) {
         return render("RECOMMENDED", "green", "fa-user-check",
             "EGFR c.2369C>T in TKI treatment-naïve patient.",
             "EGFR c.2369C>T (p.T790M) in a TKI treatment-naïve patient suggests germline origin rather than an acquired resistance mutation. Germline confirmation recommended per ASCO 2024 guidelines.",
