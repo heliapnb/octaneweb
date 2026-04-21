@@ -157,35 +157,54 @@ function selectDx(dx) {
     document.getElementById('eligTitle').textContent = dx;
     sRes.classList.add('hidden'); sInput.value = '';
 
+    const bullets = qs.map(q => `<li class="text-sm font-semibold text-slate-700">${q}</li>`).join('');
+
     const container = document.getElementById('eligQuestions');
-    container.innerHTML = '';
-    qs.forEach((q) => {
-        container.innerHTML += `<label class="flex items-center gap-3 p-4 border rounded-xl hover:bg-slate-50 cursor-pointer"><input type="checkbox" class="elig-check w-5 h-5" onchange="calcElig()"> <span class="text-sm font-semibold">${q}</span></label>`;
-    });
-    container.innerHTML += `<label class="flex items-center gap-3 p-4 border-2 border-dashed border-red-200 bg-red-50 rounded-xl cursor-pointer md:col-span-2"><input type="checkbox" id="eNone" class="w-5 h-5" onchange="handleNone(this)"> <span class="text-sm font-black text-red-800 uppercase">None of the above apply</span></label>`;
-    calcElig();
-}
+    container.className = '';
+    container.innerHTML = `
+        <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">CCO eligibility criteria for this diagnosis</p>
+        <ul class="list-disc list-inside space-y-2 mb-6">${bullets}</ul>
+        <p class="text-sm font-bold text-slate-600 mb-3">Does this case meet one or more of the above criteria?</p>
+        <div class="flex gap-3">
+            <button id="eligYesBtn" onclick="setEligAnswer('yes')"
+                class="flex-1 py-4 bg-white border-2 border-slate-300 text-slate-500 font-black rounded-xl uppercase tracking-widest hover:border-green-400 hover:text-green-700 transition-all">
+                <i class="fas fa-check mr-2"></i> Yes
+            </button>
+            <button id="eligNoBtn" onclick="setEligAnswer('no')"
+                class="flex-1 py-4 bg-white border-2 border-slate-300 text-slate-500 font-black rounded-xl uppercase tracking-widest hover:border-red-400 hover:text-red-600 transition-all">
+                <i class="fas fa-times mr-2"></i> No
+            </button>
+        </div>`;
 
-function handleNone(cb) {
-    if (cb.checked) document.querySelectorAll('.elig-check').forEach(c => c.checked = false);
-    calcElig();
-}
-
-function calcElig() {
+    // Reset result
     const result = document.getElementById('eligFinalResult');
-    const isElig = Array.from(document.querySelectorAll('.elig-check')).some(c => c.checked);
-    const isNone = document.getElementById('eNone')?.checked;
+    if (result) { result.classList.add('hidden'); result.innerHTML = ''; }
+}
+
+function setEligAnswer(val) {
+    const yesBtn = document.getElementById('eligYesBtn');
+    const noBtn  = document.getElementById('eligNoBtn');
+    if (yesBtn && noBtn) {
+        yesBtn.className = val === 'yes'
+            ? 'flex-1 py-4 bg-green-600 text-white font-black rounded-xl uppercase tracking-widest ring-2 ring-green-400'
+            : 'flex-1 py-4 bg-white border-2 border-slate-300 text-slate-500 font-black rounded-xl uppercase tracking-widest hover:border-green-400 hover:text-green-700 transition-all';
+        noBtn.className = val === 'no'
+            ? 'flex-1 py-4 bg-red-500 text-white font-black rounded-xl uppercase tracking-widest ring-2 ring-red-300'
+            : 'flex-1 py-4 bg-white border-2 border-slate-300 text-slate-500 font-black rounded-xl uppercase tracking-widest hover:border-red-400 hover:text-red-600 transition-all';
+    }
+    calcElig(val);
+}
+
+function calcElig(val) {
+    const result = document.getElementById('eligFinalResult');
     if (!result) return;
     result.classList.remove('hidden');
-    if (isElig) {
-        result.className = 'mt-8 p-6 rounded-2xl bg-green-50 border-green-500 text-green-900 animate-fade-in';
-        result.innerHTML = `<h3 class="font-black text-xl">ELIGIBILITY CONFIRMED</h3><p>Patient meets Provincial HCT criteria.</p>`;
-    } else if (isNone) {
-        result.className = 'mt-8 p-6 rounded-2xl bg-red-50 border-red-500 text-red-900 animate-fade-in';
-        result.innerHTML = `<h3 class="font-black text-xl">ELIGIBILITY NOT MET</h3><p>Does not meet CCO criteria.</p>`;
-    } else {
-        result.className = 'mt-8 p-6 rounded-2xl bg-slate-100 text-slate-400 text-center uppercase text-xs font-black tracking-widest';
-        result.innerHTML = "Select criteria to assess";
+    if (val === 'yes') {
+        result.className = 'mt-8 p-6 rounded-2xl bg-green-50 border-2 border-green-500 text-green-900 animate-fade-in';
+        result.innerHTML = `<h3 class="font-black text-xl">ELIGIBILITY CONFIRMED</h3><p class="mt-1">Patient meets Provincial HCT criteria.</p>`;
+    } else if (val === 'no') {
+        result.className = 'mt-8 p-6 rounded-2xl bg-red-50 border-2 border-red-500 text-red-900 animate-fade-in';
+        result.innerHTML = `<h3 class="font-black text-xl">ELIGIBILITY NOT MET</h3><p class="mt-1">Does not meet CCO criteria for this diagnosis.</p>`;
     }
 }
 
