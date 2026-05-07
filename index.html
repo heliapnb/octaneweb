@@ -1,112 +1,915 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OCTANE Decision Support Tool</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .step-inactive { display: none; }
-        .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Octane — Clinical Decision Support</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-body: #f9f8f6;
+      --bg-card: #ffffff;
+      --bg-soft: #faf9f7;
+      --bg-softer: #f4f2ee;
+      --border: #d8d3cc;
+      --border-soft: #e8e5e0;
+      --border-fade: #f0ede8;
+      --ink: #111827;
+      --ink-soft: #3d3a35;
+      --mute: #888179;
+      --mute-light: #aaa49b;
+      --mute-fade: #ccc8c0;
+      --success: #047857;
+      --success-bg: #f0faf4;
+      --danger: #b91c1c;
+      --danger-bg: #fdf6f6;
+      --warn: #b45309;
+      --warn-bg: #fdfaf3;
+      --info: #1d4ed8;
+
+      --font-display: 'Cormorant Garamond', 'Times New Roman', serif;
+      --font-body: 'Lora', Georgia, serif;
+      --font-mono: 'Courier New', monospace;
+      --font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg-body);
+      color: var(--ink-soft);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .hidden { display: none !important; }
+    a { color: var(--info); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ─── Header ───────────────────────────────────────────── */
+    .o-header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-soft);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .o-name {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+    .o-sub {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--mute-light);
+      font-style: italic;
+      margin-top: 4px;
+    }
+    .o-tagline {
+      font-family: var(--font-display);
+      font-size: 14px;
+      color: var(--mute-fade);
+      font-style: italic;
+      letter-spacing: 0.04em;
+      text-align: right;
+    }
+
+    /* ─── Tabs ─────────────────────────────────────────────── */
+    .o-tabs {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-soft);
+      display: flex;
+      padding: 0 32px;
+      overflow-x: auto;
+    }
+    .o-tab {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--mute-light);
+      padding: 14px 0;
+      margin-right: 32px;
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      font-style: italic;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .o-tab.on {
+      color: var(--ink);
+      border-bottom-color: var(--ink);
+      font-style: normal;
+      font-weight: 600;
+    }
+    .o-tab:hover:not(.on) { color: var(--ink-soft); }
+
+    /* ─── Main shell ───────────────────────────────────────── */
+    .o-main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 32px 80px;
+    }
+
+    .o-section { display: block; }
+    .o-section.is-hidden { display: none; }
+
+    /* ─── Form components ──────────────────────────────────── */
+    .o-lbl {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--mute);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .o-hint {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--mute);
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+    .o-hint .mono {
+      font-family: var(--font-mono);
+      font-style: normal;
+      font-size: 11px;
+      color: var(--ink-soft);
+      background: var(--bg-softer);
+      padding: 1px 6px;
+    }
+
+    .o-input-row {
+      display: flex;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .o-input-row:focus-within { border-color: var(--ink); }
+
+    .o-input {
+      flex: 1;
+      padding: 13px 16px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink);
+      border: none;
+      outline: none;
+      background: transparent;
+      min-width: 0;
+    }
+    .o-input::placeholder {
+      color: var(--mute-light);
+      font-style: italic;
+    }
+
+    .o-textarea {
+      display: block;
+      width: 100%;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      resize: vertical;
+      min-height: 70px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .o-textarea:focus { border-color: var(--ink); }
+    .o-textarea::placeholder { color: var(--mute-light); }
+
+    /* ─── Buttons ──────────────────────────────────────────── */
+    .o-btn {
+      background: var(--ink);
+      color: white;
+      border: 1px solid var(--ink);
+      padding: 12px 22px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .o-btn:hover { background: #2a2a2a; }
+    .o-btn-secondary {
+      background: transparent;
+      color: var(--mute);
+      border-color: var(--border);
+    }
+    .o-btn-secondary:hover {
+      background: var(--bg-soft);
+      color: var(--ink);
+      border-color: var(--ink);
+    }
+    .o-btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .o-btn-row .o-btn { flex: 1; }
+    @media (max-width: 600px) {
+      .o-btn-row { flex-direction: column; }
+    }
+
+    /* ─── Search results dropdown ──────────────────────────── */
+    .o-search-results {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-top: none;
+      max-height: 280px;
+      overflow-y: auto;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    }
+    .o-search-item {
+      padding: 11px 16px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink-soft);
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-fade);
+    }
+    .o-search-item:last-child { border-bottom: none; }
+    .o-search-item:hover {
+      background: var(--bg-soft);
+      color: var(--ink);
+    }
+
+    /* ─── Section heading ──────────────────────────────────── */
+    .o-sh-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 32px 0 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .o-sh {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+    .o-reset {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mute-light);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .o-reset:hover { color: var(--danger); }
+
+    /* ─── Criteria list (eligibility) ──────────────────────── */
+    .o-crit-label {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--mute);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .o-crit {
+      list-style: none;
+    }
+    .o-crit li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border-fade);
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+    }
+    .o-crit li:before {
+      content: '·';
+      color: var(--mute-fade);
+      font-size: 18px;
+      line-height: 1;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    .o-crit li:last-child { border-bottom: none; }
+
+    /* ─── Yes/No question row ──────────────────────────────── */
+    .o-q { margin-top: 22px; }
+    .o-q-prompt {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink-soft);
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+    .o-yn {
+      display: flex;
+      gap: 10px;
+    }
+    .o-yn-btn {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--mute);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .o-yn-btn:hover:not(.is-on) {
+      border-color: var(--ink);
+      color: var(--ink);
+    }
+    .o-yn-btn.is-yes-on {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+    .o-yn-btn.is-no-on {
+      background: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
+
+    /* ─── Verdict (eligibility result) ─────────────────────── */
+    .o-verdict {
+      margin-top: 24px;
+      padding: 18px 22px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .o-verdict.is-success { border-color: var(--success); background: var(--success-bg); }
+    .o-verdict.is-danger { border-color: var(--danger); background: var(--danger-bg); }
+    .o-verdict-badge {
+      font-family: var(--font-ui);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      white-space: nowrap;
+      color: white;
+    }
+    .o-verdict.is-success .o-verdict-badge { background: var(--success); }
+    .o-verdict.is-danger  .o-verdict-badge { background: var(--danger); }
+    .o-verdict-text {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    /* ─── Germline 2-column layout ─────────────────────────── */
+    .o-germline-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+    @media (min-width: 980px) {
+      .o-germline-grid {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        gap: 36px;
+        align-items: start;
+      }
+      .o-germline-grid > div:last-child {
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+      }
+    }
+
+    /* ─── Variant card ─────────────────────────────────────── */
+    .o-vcard {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      margin-top: 16px;
+    }
+    .o-vcard-head {
+      padding: 14px 18px;
+      background: var(--bg-soft);
+      border-bottom: 1px solid var(--border-soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .o-vcard-title {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .o-vcard-title .gene {
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+    .o-vcard-title .coding {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--mute);
+    }
+    .o-vcard-body { padding: 16px 18px; }
+    .o-vcard-section {
+      padding: 14px 0;
+      border-top: 1px solid var(--border-fade);
+    }
+    .o-vcard-section:first-child {
+      padding-top: 0;
+      border-top: none;
+    }
+
+    /* ─── ClinVar pill (significance) ──────────────────────── */
+    .o-cv-pill {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 11px;
+      color: white;
+      white-space: nowrap;
+    }
+    .o-cv-pill.cv-plp { background: var(--danger); }
+    .o-cv-pill.cv-lp  { background: #d97706; }
+    .o-cv-pill.cv-vus { background: #b88a1f; }
+    .o-cv-pill.cv-benign { background: var(--success); }
+    .o-cv-pill.cv-lb  { background: #1d4ed8; }
+    .o-cv-pill.cv-conflicting { background: #6d28d9; }
+    .o-cv-pill.cv-unknown { background: var(--mute); }
+
+    /* ─── ClinVar info line ────────────────────────────────── */
+    .o-cv-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .o-cv-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mute);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .o-cv-summary {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--mute);
+      margin-top: 6px;
+      font-style: italic;
+    }
+    .o-extlink {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--info);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      margin-top: 6px;
+    }
+    .o-extlink:hover { text-decoration: underline; }
+    .o-cv-error {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--danger);
+      font-style: italic;
+    }
+    .o-cv-none {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    /* ─── Skeleton loader ──────────────────────────────────── */
+    .o-skel {
+      height: 12px;
+      background: var(--bg-softer);
+      animation: skel-pulse 1.5s ease-in-out infinite;
+    }
+    .o-skel + .o-skel { margin-top: 8px; width: 65%; }
+    @keyframes skel-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ─── External "check on Franklin/Varsome" buttons ─────── */
+    .o-extbtns {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .o-extbtn {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--ink);
+      color: white;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    .o-extbtn:hover {
+      background: #2a2a2a;
+      text-decoration: none;
+      color: white;
+    }
+    .o-mini-prompt {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--mute);
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+
+    /* ─── In-card question (yes/no) ───────────────────────── */
+    .o-qtitle {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--mute);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .o-qcrit {
+      list-style: none;
+      margin: 6px 0 10px;
+    }
+    .o-qcrit li {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--ink-soft);
+      padding: 4px 0 4px 14px;
+      position: relative;
+      line-height: 1.55;
+    }
+    .o-qcrit li:before {
+      content: '·';
+      position: absolute;
+      left: 4px;
+      color: var(--mute);
+    }
+
+    /* ─── Age input + checkbox row ─────────────────────────── */
+    .o-age-input {
+      width: 100%;
+      padding: 10px 14px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .o-age-input:focus { border-color: var(--ink); }
+
+    .o-cb-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--ink-soft);
+      cursor: pointer;
+      padding: 4px 0;
+    }
+    .o-cb-row input[type=checkbox] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--ink);
+      cursor: pointer;
+    }
+
+    /* ─── Empty state (right panel) ────────────────────────── */
+    .o-empty {
+      text-align: center;
+      padding: 60px 24px;
+      background: var(--bg-card);
+      border: 1px dashed var(--border);
+    }
+    .o-empty-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-style: italic;
+      color: var(--mute);
+      margin-bottom: 6px;
+    }
+    .o-empty-sub {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--mute-light);
+      font-style: italic;
+    }
+
+    /* ─── Summary table ────────────────────────────────────── */
+    .o-table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .o-table-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--mute);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-soft);
+      background: var(--bg-soft);
+    }
+    .o-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-body);
+    }
+    .o-table th {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mute);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 10px 16px;
+      text-align: left;
+      background: var(--bg-soft);
+      border-bottom: 1px solid var(--border-soft);
+      white-space: nowrap;
+    }
+    .o-table td {
+      padding: 14px 16px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border-fade);
+      font-size: 13px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+    }
+    .o-table tr:last-child td { border-bottom: none; }
+    .o-table .gene {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .o-table .coding {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--mute);
+      white-space: nowrap;
+    }
+    .o-table .rationale {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--mute);
+      margin-top: 6px;
+      line-height: 1.6;
+    }
+    .o-table .refs {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* ─── Recommendation badges (table cells) ──────────────── */
+    .o-td-badge {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      color: white;
+      white-space: nowrap;
+    }
+    .o-td-badge.is-success { background: var(--success); }
+    .o-td-badge.is-danger { background: var(--danger); }
+    .o-td-badge.is-warn { background: var(--warn); }
+    .o-td-badge.is-mute { background: var(--mute); }
+    .o-td-badge.is-pending { background: var(--mute-light); }
+
+    /* ─── Reference link chip ──────────────────────────────── */
+    .o-ref {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--info);
+      text-decoration: none;
+      padding: 3px 9px;
+      border: 1px solid var(--border-soft);
+      background: var(--bg-card);
+      letter-spacing: 0.02em;
+    }
+    .o-ref:hover {
+      border-color: var(--info);
+      background: #f5f8ff;
+      text-decoration: none;
+    }
+
+    /* ─── Overall recommendation banner ────────────────────── */
+    .o-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      margin-top: 22px;
+      padding: 22px 26px;
+    }
+    .o-banner.is-success { border-color: var(--success); background: var(--success-bg); }
+    .o-banner.is-danger { border-color: var(--danger); background: var(--danger-bg); }
+    .o-banner.is-warn { border-color: var(--warn); background: var(--warn-bg); }
+    .o-banner-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .o-banner-badge {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      white-space: nowrap;
+      color: white;
+    }
+    .o-banner.is-success .o-banner-badge { background: var(--success); }
+    .o-banner.is-danger  .o-banner-badge { background: var(--danger); }
+    .o-banner.is-warn    .o-banner-badge { background: var(--warn); }
+    .o-banner.is-pending .o-banner-badge { background: var(--mute); }
+    .o-banner-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.01em;
+    }
+    .o-banner-body {
+      margin-top: 10px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.6;
+    }
+    .o-banner-rationale {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-fade);
+      list-style: none;
+    }
+    .o-banner-rationale li {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--mute);
+      padding: 6px 0;
+      line-height: 1.6;
+    }
+    .o-banner-rationale .gene {
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .o-banner-refs {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-fade);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ─── Result content stacking ──────────────────────────── */
+    .o-result-stack > * + * { margin-top: 0; }
+
+    /* ─── Animations ───────────────────────────────────────── */
+    .fade-in { animation: fade-in 0.25s ease-out; }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans text-slate-900">
+<body>
 
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-700 text-white p-2 rounded-lg shadow-md">
-                    <i class="fas fa-microscope text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-lg font-black tracking-tight text-slate-800 leading-none">OCTANE <span class="text-blue-600">DECISION SUPPORT TOOL</span></h1>
-                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">CCO Eligibility • Germline Confirmation</p>
-                </div>
-            </div>
+<header class="o-header">
+  <div>
+    <h1 class="o-name">Octane</h1>
+    <div class="o-sub">Clinical Decision Support</div>
+  </div>
+  <div class="o-tagline">Hereditary Cancer · HCT</div>
+</header>
+
+<nav class="o-tabs">
+  <button onclick="switchTab('eligibility')" id="tab-eligibility" class="o-tab on">CCO Eligibility</button>
+  <button onclick="switchTab('germline')" id="tab-germline" class="o-tab">Germline Confirmation</button>
+</nav>
+
+<main class="o-main">
+
+  <!-- ─── ELIGIBILITY ───────────────────────────────────────── -->
+  <section id="sec-eligibility" class="o-section">
+    <div class="o-lbl">Patient's Primary Diagnosis</div>
+    <div class="o-input-row">
+      <input type="text" id="cancerSearch" class="o-input" placeholder="Search (e.g. Colon, Breast, Melanoma…)" autocomplete="off">
+    </div>
+    <div id="searchResults" class="o-search-results hidden"></div>
+
+    <div id="eligibilityQuestionnaire" class="hidden">
+      <div class="o-sh-row">
+        <h2 id="eligTitle" class="o-sh"></h2>
+        <button onclick="resetEligibility()" class="o-reset">Reset</button>
+      </div>
+      <div id="eligQuestions"></div>
+      <div id="eligFinalResult" class="hidden"></div>
+    </div>
+  </section>
+
+  <!-- ─── GERMLINE ─────────────────────────────────────────── -->
+  <section id="sec-germline" class="o-section is-hidden">
+    <div class="o-germline-grid">
+      <!-- Left: Input + per-variant cards -->
+      <div>
+        <div class="o-lbl">Tumour Variant(s)</div>
+        <p class="o-hint">One or more variants separated by commas. Example: <span class="mono">BRCA1 c.5266dupC, CHEK2 c.524dup</span></p>
+        <textarea id="gVariantInput" rows="2" class="o-textarea" placeholder="GENE c.xxxxx, GENE c.xxxxx, …"></textarea>
+        <div class="o-btn-row">
+          <button onclick="lookupAllVariants()" class="o-btn">Look Up in ClinVar</button>
+          <button onclick="bypassAllVariants()" class="o-btn o-btn-secondary">Skip — Genes Only</button>
         </div>
-    </header>
+        <div id="gVariantCards" class="hidden"></div>
+      </div>
 
-    <main class="max-w-6xl mx-auto px-4 py-8">
-        <nav class="flex border-b border-slate-200 mb-8 bg-white rounded-t-2xl px-2 shadow-sm overflow-x-auto">
-            <button onclick="switchTab('eligibility')" id="tab-eligibility" class="whitespace-nowrap px-8 py-5 font-bold tab-active transition-all outline-none">
-                CCO Eligibility Criteria
-            </button>
-            <button onclick="switchTab('germline')" id="tab-germline" class="whitespace-nowrap px-8 py-5 font-bold text-slate-400 hover:text-blue-600 transition-all outline-none">
-                Germline Confirmation DST
-            </button>
-        </nav>
+      <!-- Right: Summary table + overall recommendation -->
+      <div>
+        <div id="gOutput">
+          <div id="gEmptyState" class="o-empty">
+            <div class="o-empty-title">Awaiting lookup</div>
+            <div class="o-empty-sub">Enter variant(s) and look up in ClinVar to begin.</div>
+          </div>
+          <div id="gResultContent" class="hidden"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <!-- Eligibility Section -->
-        <section id="sec-eligibility" class="space-y-6">
-            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                <label class="block text-xs font-black text-slate-400 mb-3 uppercase tracking-widest">Select Patient's Primary Diagnosis</label>
-                <div class="relative">
-                    <input type="text" id="cancerSearch" placeholder="Search (e.g. Colon, Breast, Melanoma...)" 
-                           class="w-full p-4 pl-12 border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-100 outline-none transition-all text-lg font-medium">
-                    <i class="fas fa-search absolute left-4 top-5 text-slate-400"></i>
-                </div>
-                <div id="searchResults" class="mt-2 border border-slate-200 rounded-xl hidden max-h-64 overflow-y-auto bg-white shadow-2xl z-20 relative custom-scrollbar"></div>
-            </div>
+</main>
 
-            <div id="eligibilityQuestionnaire" class="hidden animate-fade-in bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-start mb-6">
-                    <h2 id="eligTitle" class="text-2xl font-black text-slate-800"></h2>
-                    <button onclick="resetEligibility()" class="text-slate-400 hover:text-red-500 text-xs font-bold uppercase"><i class="fas fa-undo mr-1"></i> Reset</button>
-                </div>
-                <div id="eligQuestions" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-                <div id="eligFinalResult" class="mt-8 p-6 rounded-2xl hidden border-2"></div>
-            </div>
-        </section>
-
-        <!-- Germline Section -->
-        <section id="sec-germline" class="step-inactive space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                <!-- Left: Input + per-variant cards -->
-                <div class="lg:col-span-5 space-y-6">
-                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                        <h2 class="text-xl font-black text-slate-800">Enter tumour variant(s) to begin</h2>
-                        <p class="text-xs text-slate-400 font-semibold">One or more variants separated by commas.<br>
-                            Example: <span class="font-mono">BRCA1 c.5266dupC, CHEK2 c.524dup</span></p>
-                        <textarea id="gVariantInput" rows="3" placeholder="GENE c.xxxxx, GENE c.xxxxx, ..."
-                            class="w-full p-4 border border-slate-300 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-mono font-bold resize-none text-sm"></textarea>
-                        <button onclick="lookupAllVariants()" class="w-full py-4 bg-slate-800 text-white rounded-xl font-black uppercase tracking-widest hover:bg-slate-700 transition-all flex items-center justify-center gap-2 text-sm">
-                            <i class="fas fa-database"></i> Look Up in ClinVar
-                        </button>
-                        <button onclick="bypassAllVariants()" class="w-full py-3 bg-white border-2 border-slate-300 text-slate-500 rounded-xl font-black uppercase tracking-widest hover:border-slate-400 hover:text-slate-700 transition-all flex items-center justify-center gap-2 text-xs">
-                            <i class="fas fa-forward"></i> Skip — Check Gene Recommendations Only
-                        </button>
-                    </div>
-
-                    <!-- Per-variant cards (ClinVar results + context questions) -->
-                    <div id="gVariantCards" class="hidden space-y-4"></div>
-                </div>
-
-                <!-- Right: Summary table + overall recommendation -->
-                <div class="lg:col-span-7">
-                    <div id="gOutput" class="bg-slate-100 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-8 transition-all min-h-[500px]">
-                        <div id="gEmptyState" class="text-center text-slate-400">
-                            <i class="fas fa-microscope fa-5x mb-6 opacity-20"></i>
-                            <p class="text-xl font-bold">Awaiting Lookup</p>
-                            <p class="text-sm">Enter variant(s) and look up in ClinVar to begin.</p>
-                        </div>
-                        <div id="gResultContent" class="hidden w-full animate-fade-in"></div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-    </main>
-
-    <script src="js/eligibility.js"></script>
-    <script src="js/germline.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/app.js"></script>
+<script src="js/eligibility.js"></script>
+<script src="js/germline.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

@@ -4,13 +4,13 @@ const sInput = document.getElementById('cancerSearch');
 const sRes = document.getElementById('searchResults');
 
 sInput.addEventListener('input', () => {
-    const val = sInput.value.toLowerCase();
+    const val = sInput.value;
     sRes.innerHTML = '';
     if (!val) { sRes.classList.add('hidden'); return; }
-    const matches = searchDiagnoses(sInput.value);
+    const matches = searchDiagnoses(val);
     matches.forEach(m => {
         const d = document.createElement('div');
-        d.className = 'p-3 hover:bg-blue-50 cursor-pointer border-b text-sm font-bold text-slate-600';
+        d.className = 'o-search-item';
         d.textContent = m;
         d.onclick = () => selectDx(m);
         sRes.appendChild(d);
@@ -22,41 +22,34 @@ function selectDx(dx) {
     const qs = getCriteriaForDx(dx);
     document.getElementById('eligibilityQuestionnaire').classList.remove('hidden');
     document.getElementById('eligTitle').textContent = dx;
-    sRes.classList.add('hidden'); sInput.value = '';
+    sRes.classList.add('hidden');
+    sInput.value = '';
 
-    const bullets = qs.map(q => `<li class="text-sm font-semibold text-slate-700">${q}</li>`).join('');
+    const items = qs.map(q => `<li>${q}</li>`).join('');
 
     const container = document.getElementById('eligQuestions');
-    container.className = '';
+    container.className = 'fade-in';
     container.innerHTML = `
-        <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">CCO eligibility criteria for this diagnosis</p>
-        <ul class="list-disc list-inside space-y-2 mb-6">${bullets}</ul>
-        <p class="text-sm font-bold text-slate-600 mb-3">Does this case meet one or more of the above criteria?</p>
-        <div class="flex gap-3">
-            <button id="eligYesBtn" onclick="setEligAnswer('yes')"
-                class="flex-1 py-4 bg-white border-2 border-slate-300 text-slate-500 font-black rounded-xl uppercase tracking-widest hover:border-green-400 hover:text-green-700 transition-all">
-                <i class="fas fa-check mr-2"></i> Yes
-            </button>
-            <button id="eligNoBtn" onclick="setEligAnswer('no')"
-                class="flex-1 py-4 bg-white border-2 border-slate-300 text-slate-500 font-black rounded-xl uppercase tracking-widest hover:border-red-400 hover:text-red-600 transition-all">
-                <i class="fas fa-times mr-2"></i> No
-            </button>
+        <div class="o-crit-label">CCO eligibility criteria for this diagnosis</div>
+        <ul class="o-crit">${items}</ul>
+        <div class="o-q">
+            <p class="o-q-prompt">Does this case meet one or more of the above criteria?</p>
+            <div class="o-yn">
+                <button id="eligYesBtn" onclick="setEligAnswer('yes')" class="o-yn-btn">Yes</button>
+                <button id="eligNoBtn" onclick="setEligAnswer('no')" class="o-yn-btn">No</button>
+            </div>
         </div>`;
 
     const result = document.getElementById('eligFinalResult');
-    if (result) { result.classList.add('hidden'); result.innerHTML = ''; }
+    if (result) { result.classList.add('hidden'); result.innerHTML = ''; result.className = 'hidden'; }
 }
 
 function setEligAnswer(val) {
     const yesBtn = document.getElementById('eligYesBtn');
     const noBtn  = document.getElementById('eligNoBtn');
     if (yesBtn && noBtn) {
-        yesBtn.className = val === 'yes'
-            ? 'flex-1 py-4 bg-green-600 text-white font-black rounded-xl uppercase tracking-widest ring-2 ring-green-400'
-            : 'flex-1 py-4 bg-white border-2 border-slate-300 text-slate-500 font-black rounded-xl uppercase tracking-widest hover:border-green-400 hover:text-green-700 transition-all';
-        noBtn.className = val === 'no'
-            ? 'flex-1 py-4 bg-red-500 text-white font-black rounded-xl uppercase tracking-widest ring-2 ring-red-300'
-            : 'flex-1 py-4 bg-white border-2 border-slate-300 text-slate-500 font-black rounded-xl uppercase tracking-widest hover:border-red-400 hover:text-red-600 transition-all';
+        yesBtn.className = 'o-yn-btn' + (val === 'yes' ? ' is-yes-on' : '');
+        noBtn.className  = 'o-yn-btn' + (val === 'no'  ? ' is-no-on'  : '');
     }
     calcElig(val);
 }
@@ -66,11 +59,15 @@ function calcElig(val) {
     if (!result) return;
     result.classList.remove('hidden');
     if (val === 'yes') {
-        result.className = 'mt-8 p-6 rounded-2xl bg-green-50 border-2 border-green-500 text-green-900 animate-fade-in';
-        result.innerHTML = `<h3 class="font-black text-xl">ELIGIBILITY CONFIRMED</h3><p class="mt-1">Patient meets Provincial HCT criteria.</p>`;
+        result.className = 'o-verdict is-success fade-in';
+        result.innerHTML = `
+            <span class="o-verdict-badge">Confirmed</span>
+            <span class="o-verdict-text">Patient meets Provincial HCT criteria.</span>`;
     } else if (val === 'no') {
-        result.className = 'mt-8 p-6 rounded-2xl bg-red-50 border-2 border-red-500 text-red-900 animate-fade-in';
-        result.innerHTML = `<h3 class="font-black text-xl">ELIGIBILITY NOT MET</h3><p class="mt-1">Does not meet CCO criteria for this diagnosis.</p>`;
+        result.className = 'o-verdict is-danger fade-in';
+        result.innerHTML = `
+            <span class="o-verdict-badge">Not Met</span>
+            <span class="o-verdict-text">Does not meet CCO criteria for this diagnosis.</span>`;
     }
 }
 
@@ -98,7 +95,7 @@ async function lookupAllVariants() {
     resetRightPanel();
     renderVariantCards();
     for (let i = 0; i < states.length; i++) {
-        if (i > 0) await new Promise(r => setTimeout(r, 700)); // stay within NCBI rate limit (3 req/sec)
+        if (i > 0) await new Promise(r => setTimeout(r, 700)); // stay within NCBI rate limit
         await lookupSingleVariant(states[i]);
         renderVariantCards();
         updateResultsPanel();
@@ -154,68 +151,59 @@ function renderVariantCards() {
 function renderVariantCard(state, idx) {
     const { gene, coding, clinvarDone, clinvarClass, clinvarSignificance, clinvarId, clinvarTotal, clinvarSummary, plpConfirmed } = state;
 
-    // ClinVar section
+    // ── ClinVar section ──
     let clinvarHtml = '';
     if (!clinvarDone && plpConfirmed === null) {
-        clinvarHtml = `<div class="h-5 bg-slate-100 rounded animate-pulse"></div><div class="h-5 bg-slate-100 rounded animate-pulse w-3/4 mt-1"></div>`;
+        clinvarHtml = `<div class="o-skel"></div><div class="o-skel"></div>`;
     } else if (clinvarSignificance === 'error') {
-        clinvarHtml = `<p class="text-xs text-red-500 font-bold">ClinVar lookup failed. Check your connection.</p>`;
-    } else if (clinvarDone && (clinvarSignificance === 'plp' || clinvarSignificance === 'vus' || clinvarSignificance === 'benign' || clinvarSignificance === 'conflicting' || clinvarSignificance === 'unknown')) {
-        const colorClass = getClassColor(clinvarClass);
+        clinvarHtml = `<p class="o-cv-error">ClinVar lookup failed. Check your connection.</p>`;
+    } else if (clinvarDone && clinvarClass) {
         clinvarHtml = `
-            <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ClinVar Germline</span>
-                <span class="px-2 py-1 rounded-full text-xs font-black ${colorClass}">${clinvarClass}</span>
+            <div class="o-cv-line">
+                <span class="o-cv-label">ClinVar Germline</span>
+                <span class="o-cv-pill ${getClassColor(clinvarClass)}">${clinvarClass}</span>
             </div>
-            ${clinvarTotal > 0 ? `<p class="text-xs text-slate-500">${clinvarSummary}</p>` : ''}
-            <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${clinvarId}/" target="_blank" class="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest"><i class="fas fa-external-link-alt mr-1"></i>ClinVar record</a>`;
+            ${clinvarTotal > 0 ? `<div class="o-cv-summary">${clinvarSummary}</div>` : ''}
+            <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${clinvarId}/" target="_blank" rel="noopener" class="o-extlink">ClinVar record  ↗</a>`;
     } else if (clinvarDone && clinvarSignificance === 'none') {
-        clinvarHtml = `<p class="text-xs font-bold text-slate-600">Not found on ClinVar.</p>`;
+        clinvarHtml = `<p class="o-cv-none">Not found on ClinVar.</p>`;
     }
 
-    // P/LP decision buttons (for conflicting, unknown, or not found)
+    // ── P/LP decision (only if conflicting / unknown / not found) ──
     let plpButtons = '';
     if (clinvarDone && (clinvarSignificance === 'none' || clinvarSignificance === 'conflicting' || clinvarSignificance === 'unknown')) {
         const yesActive = plpConfirmed === true;
         const noActive  = plpConfirmed === false;
         plpButtons = `
-            <div class="space-y-2 pt-2 border-t border-slate-100">
-                <p class="text-xs text-slate-500 font-semibold">Check Franklin and Varsome, then indicate classification:</p>
-                <div class="flex gap-2">
-                    <a href="https://franklin.genoox.com/clinical-db/home" target="_blank"
-                        class="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 uppercase tracking-widest">
-                        <i class="fas fa-external-link-alt"></i> Franklin
-                    </a>
-                    <a href="https://varsome.com/" target="_blank"
-                        class="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 uppercase tracking-widest">
-                        <i class="fas fa-external-link-alt"></i> Varsome
-                    </a>
+            <div class="o-vcard-section">
+                <p class="o-mini-prompt">Check Franklin and Varsome, then indicate classification:</p>
+                <div class="o-extbtns">
+                    <a href="https://franklin.genoox.com/clinical-db/home" target="_blank" rel="noopener" class="o-extbtn">Franklin  ↗</a>
+                    <a href="https://varsome.com/" target="_blank" rel="noopener" class="o-extbtn">Varsome  ↗</a>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="setVariantPLP(${idx}, true)"
-                        class="flex-1 py-2 text-xs font-black rounded-lg uppercase tracking-widest ${yesActive ? 'bg-green-600 text-white ring-2 ring-green-400' : 'bg-white border-2 border-slate-300 text-slate-500 hover:border-green-400 hover:text-green-700 transition-all'}">
-                        <i class="fas fa-check mr-1"></i> P / LP
-                    </button>
-                    <button onclick="setVariantPLP(${idx}, false)"
-                        class="flex-1 py-2 text-xs font-black rounded-lg uppercase tracking-widest ${noActive ? 'bg-red-500 text-white ring-2 ring-red-300' : 'bg-white border-2 border-slate-300 text-slate-500 hover:border-red-400 hover:text-red-600 transition-all'}">
-                        <i class="fas fa-times mr-1"></i> Not P / LP
-                    </button>
+                <div class="o-yn">
+                    <button onclick="setVariantPLP(${idx}, true)" class="o-yn-btn${yesActive ? ' is-yes-on' : ''}">P / LP</button>
+                    <button onclick="setVariantPLP(${idx}, false)" class="o-yn-btn${noActive ? ' is-no-on' : ''}">Not P / LP</button>
                 </div>
             </div>`;
     }
 
-    // Context / age section (only if P/LP confirmed)
+    // ── Context / age section (only if P/LP confirmed) ──
     const contextHtml = plpConfirmed === true ? renderVariantContextSection(state, idx) : '';
 
     return `
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3 animate-fade-in">
-            <div class="flex items-center gap-2 flex-wrap">
-                <span class="px-3 py-1 bg-slate-800 text-white rounded-lg font-mono font-black text-sm">${gene}</span>
-                <span class="font-mono text-sm text-slate-600 font-bold">${coding}</span>
+        <div class="o-vcard fade-in">
+            <div class="o-vcard-head">
+                <div class="o-vcard-title">
+                    <span class="gene">${gene}</span>
+                    <span class="coding">${coding}</span>
+                </div>
             </div>
-            ${clinvarHtml ? `<div class="space-y-1">${clinvarHtml}</div>` : ''}
-            ${plpButtons}
-            ${contextHtml}
+            <div class="o-vcard-body">
+                ${clinvarHtml ? `<div class="o-vcard-section">${clinvarHtml}</div>` : ''}
+                ${plpButtons}
+                ${contextHtml}
+            </div>
         </div>`;
 }
 
@@ -231,25 +219,24 @@ function renderVariantContextSection(state, idx) {
     }
     if (gene === 'APC' && !coding.includes(founderAPC)) {
         return `
-            <div class="pt-2 border-t border-slate-100 space-y-3">
-                <label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer">
-                    <input type="checkbox" ${multiVariant ? 'checked' : ''} onchange="setVariantMultiVariant(${idx}, this.checked)" class="w-4 h-4">
-                    2 or more reported P/LP variants in APC
+            <div class="o-vcard-section">
+                <label class="o-cb-row">
+                    <input type="checkbox" ${multiVariant ? 'checked' : ''} onchange="setVariantMultiVariant(${idx}, this.checked)">
+                    <span>2 or more reported P/LP variants in APC</span>
                 </label>
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Age at diagnosis</label>
+                <div style="margin-top:10px;">
+                    <div class="o-qtitle">Age at diagnosis</div>
                     <input type="number" value="${ageInput}" placeholder="e.g. 28" min="1" max="120"
-                        oninput="setVariantAge(${idx}, this.value)"
-                        class="w-full mt-1 p-3 border border-slate-300 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-sm">
+                        oninput="setVariantAge(${idx}, this.value)" class="o-age-input">
                 </div>
             </div>`;
     }
     if (gene === 'TP53' && !coding.includes(founderTP53)) {
         return `
-            <div class="pt-2 border-t border-slate-100">
-                <label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer">
-                    <input type="checkbox" ${multiVariant ? 'checked' : ''} onchange="setVariantMultiVariant(${idx}, this.checked)" class="w-4 h-4">
-                    2 or more reported P/LP variants in TP53
+            <div class="o-vcard-section">
+                <label class="o-cb-row">
+                    <input type="checkbox" ${multiVariant ? 'checked' : ''} onchange="setVariantMultiVariant(${idx}, this.checked)">
+                    <span>2 or more reported P/LP variants in TP53</span>
                 </label>
             </div>`;
     }
@@ -268,30 +255,23 @@ function renderInlineYesNo(idx, title, criteria, currentAnswer) {
     const yesActive = currentAnswer === 'yes';
     const noActive  = currentAnswer === 'no';
     return `
-        <div class="pt-2 border-t border-slate-100 space-y-2">
-            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">${title}</p>
-            <ul class="text-xs text-slate-600 font-semibold space-y-1 list-disc list-inside">${bullets}</ul>
-            <p class="text-xs text-slate-500">Does this case meet one or more of the above criteria?</p>
-            <div class="flex gap-2">
-                <button onclick="setVariantContextAnswer(${idx}, 'yes')"
-                    class="flex-1 py-2 text-xs font-black rounded-lg uppercase tracking-widest ${yesActive ? 'bg-green-600 text-white ring-2 ring-green-400' : 'bg-white border-2 border-slate-300 text-slate-500 hover:border-green-400 hover:text-green-700 transition-all'}">
-                    <i class="fas fa-check mr-1"></i> Yes
-                </button>
-                <button onclick="setVariantContextAnswer(${idx}, 'no')"
-                    class="flex-1 py-2 text-xs font-black rounded-lg uppercase tracking-widest ${noActive ? 'bg-red-500 text-white ring-2 ring-red-300' : 'bg-white border-2 border-slate-300 text-slate-500 hover:border-red-400 hover:text-red-600 transition-all'}">
-                    <i class="fas fa-times mr-1"></i> No
-                </button>
+        <div class="o-vcard-section">
+            <div class="o-qtitle">${title}</div>
+            <ul class="o-qcrit">${bullets}</ul>
+            <p class="o-q-prompt" style="margin-bottom:10px;">Does this case meet one or more of the above criteria?</p>
+            <div class="o-yn">
+                <button onclick="setVariantContextAnswer(${idx}, 'yes')" class="o-yn-btn${yesActive ? ' is-yes-on' : ''}">Yes</button>
+                <button onclick="setVariantContextAnswer(${idx}, 'no')" class="o-yn-btn${noActive ? ' is-no-on' : ''}">No</button>
             </div>
         </div>`;
 }
 
 function renderAgeInput(idx, ageInput) {
     return `
-        <div class="pt-2 border-t border-slate-100">
-            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Age at diagnosis</label>
+        <div class="o-vcard-section">
+            <div class="o-qtitle">Age at diagnosis</div>
             <input type="number" value="${ageInput}" placeholder="e.g. 28" min="1" max="120"
-                oninput="setVariantAge(${idx}, this.value)"
-                class="w-full mt-1 p-3 border border-slate-300 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-sm">
+                oninput="setVariantAge(${idx}, this.value)" class="o-age-input">
         </div>`;
 }
 
@@ -319,104 +299,103 @@ function updateResultsPanel() {
     if (empty) empty.classList.add('hidden');
     content.classList.remove('hidden');
 
-    // Table rows — recommendation cell includes badge + rationale + refs stacked
+    // ── Summary table rows ──
     const rows = pairs.map(({ state, result }) => {
         const { gene, coding, clinvarClass } = state;
 
         const cvCell = clinvarClass
-            ? `<span class="px-2 py-1 rounded-full text-xs font-black ${getClassColor(clinvarClass)}">${clinvarClass}</span>`
-            : `<span class="text-xs text-slate-400">—</span>`;
+            ? `<span class="o-cv-pill ${getClassColor(clinvarClass)}">${clinvarClass}</span>`
+            : `<span style="color:var(--mute-light); font-style:italic;">—</span>`;
 
         let recCell;
         if (!result) {
-            recCell = `<span class="px-2 py-1 bg-slate-100 text-slate-400 rounded text-xs font-black">Loading</span>`;
+            recCell = `<span class="o-td-badge is-pending">Loading</span>`;
         } else if (result.pending) {
-            recCell = `<span class="px-2 py-1 bg-slate-100 text-slate-500 rounded text-xs font-black">Pending</span>`;
+            recCell = `<span class="o-td-badge is-mute">Pending</span>`;
         } else {
-            const badge = `<span class="px-2 py-1 rounded text-xs font-black ${recBadgeClass(result.color)}">${result.rec}</span>`;
-            const rationale = result.rationale
-                ? `<p class="text-xs text-slate-500 mt-2 leading-relaxed">${result.rationale}</p>` : '';
+            const badge = `<span class="o-td-badge ${recBadgeClass(result.color)}">${result.rec}</span>`;
+            const rationale = result.rationale ? `<div class="rationale">${result.rationale}</div>` : '';
             const refs = result.refs?.length
-                ? `<div class="flex flex-wrap gap-1 mt-2">${result.refs.map(r => `<a href="${r.url}" target="_blank" class="inline-block px-2 py-0.5 bg-slate-50 border border-slate-200 rounded text-[10px] font-bold text-blue-600 hover:underline">${r.text}</a>`).join('')}</div>` : '';
+                ? `<div class="refs">${result.refs.map(r => `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`).join('')}</div>`
+                : '';
             recCell = badge + rationale + refs;
         }
 
-        return `<tr class="border-b border-slate-100 hover:bg-slate-50 align-top">
-            <td class="px-4 py-4 font-mono font-black text-sm text-slate-800 whitespace-nowrap">${gene}</td>
-            <td class="px-4 py-4 font-mono text-sm text-slate-600 whitespace-nowrap">${coding}</td>
-            <td class="px-4 py-4">${cvCell}</td>
-            <td class="px-4 py-4">${recCell}</td>
+        return `<tr>
+            <td><span class="gene">${gene}</span></td>
+            <td><span class="coding">${coding}</span></td>
+            <td>${cvCell}</td>
+            <td>${recCell}</td>
         </tr>`;
     }).join('');
 
-    // Overall recommendation
+    // ── Overall verdict ──
     const resolved = pairs.filter(p => p.result && !p.result.pending);
     const allResolved = resolved.length === pairs.length;
     const recommended = resolved.filter(p => p.result.rec === 'RECOMMENDED');
     const mdt = resolved.filter(p => p.result.rec === 'REVIEW / MDT');
     const notOffered = resolved.filter(p => p.result.rec === 'NOT OFFERED');
 
-    let overallColor, overallIcon, overallTitle, overallBody;
+    let bannerClass, bannerLabel, bannerTitle, bannerBody;
     if (!allResolved) {
-        overallColor = 'slate'; overallIcon = 'fa-clock';
-        overallTitle = 'PENDING';
-        overallBody = 'Complete context questions for all variants to see the final recommendation.';
+        bannerClass = 'is-pending'; bannerLabel = 'Pending';
+        bannerTitle = 'Awaiting Input';
+        bannerBody = 'Complete context questions for all variants to see the final recommendation.';
     } else if (recommended.length || mdt.length) {
-        overallColor = 'green'; overallIcon = 'fa-check-circle';
-        overallTitle = 'GERMLINE CONFIRMATION RECOMMENDED';
+        bannerClass = 'is-success'; bannerLabel = 'Recommended';
+        bannerTitle = 'Germline Confirmation Recommended';
         const parts = [];
         if (recommended.length) parts.push(`Recommended: ${recommended.map(p => p.state.gene).join(', ')}`);
         if (mdt.length) parts.push(`MDT review: ${mdt.map(p => p.state.gene).join(', ')}`);
         if (notOffered.length) parts.push(`Not offered: ${notOffered.map(p => p.state.gene).join(', ')}`);
-        overallBody = parts.join(' · ');
+        bannerBody = parts.join(' · ');
     } else {
-        overallColor = 'red'; overallIcon = 'fa-ban';
-        overallTitle = 'NOT OFFERED';
-        overallBody = 'None of the identified variants meet criteria for germline confirmation.';
+        bannerClass = 'is-danger'; bannerLabel = 'Not Offered';
+        bannerTitle = 'Germline Confirmation Not Offered';
+        bannerBody = 'None of the identified variants meet criteria for germline confirmation.';
     }
 
-    // Per-gene rationale sentences for the overall recommendation
+    // ── Per-gene rationale list ──
     const rationaleLines = resolved
         .filter(p => p.result.rationale)
-        .map(p => `<li><span class="font-black">${p.state.gene}:</span> ${p.result.rationale}</li>`)
+        .map(p => `<li><span class="gene">${p.state.gene}:</span> ${p.result.rationale}</li>`)
         .join('');
     const overallRationale = rationaleLines
-        ? `<ul class="mt-4 text-left space-y-2 text-sm text-${overallColor}-800 opacity-90 list-none">${rationaleLines}</ul>` : '';
+        ? `<ul class="o-banner-rationale">${rationaleLines}</ul>` : '';
 
-    // Deduplicated references
+    // ── Deduplicated references ──
     const seenRefs = new Set();
     const allRefs = [];
-    resolved.forEach(p => (p.result.refs || []).forEach(r => { if (!seenRefs.has(r.text)) { seenRefs.add(r.text); allRefs.push(r); } }));
-    const refButtons = allRefs.map(r => `<a href="${r.url}" target="_blank" rel="noopener noreferrer" class="inline-block px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-blue-600 hover:underline">${r.text}</a>`).join(' ');
+    resolved.forEach(p => (p.result.refs || []).forEach(r => {
+        if (!seenRefs.has(r.text)) { seenRefs.add(r.text); allRefs.push(r); }
+    }));
+    const refLinks = allRefs.map(r => `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`).join('');
+    const refBlock = refLinks ? `<div class="o-banner-refs">${refLinks}</div>` : '';
 
     content.innerHTML = `
-        <div class="space-y-6">
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                <div class="px-6 py-4 border-b border-slate-100">
-                    <h3 class="font-black text-slate-800 uppercase tracking-tight text-sm">Variant Summary</h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50">
-                            <tr>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gene</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">cDNA</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">ClinVar</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Recommendation &amp; Rationale</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
+        <div class="o-result-stack fade-in">
+            <div class="o-table-wrap">
+                <div class="o-table-title">Variant Summary</div>
+                <table class="o-table">
+                    <thead>
+                        <tr>
+                            <th>Gene</th>
+                            <th>cDNA</th>
+                            <th>ClinVar</th>
+                            <th>Recommendation &amp; Rationale</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
             </div>
-            <div class="bg-${overallColor}-50 border-4 border-${overallColor}-500 rounded-3xl p-8 animate-fade-in">
-                <div class="text-center">
-                    <i class="fas ${overallIcon} fa-3x text-${overallColor}-600 mb-4"></i>
-                    <h3 class="text-2xl font-black text-${overallColor}-900 uppercase">${overallTitle}</h3>
-                    <p class="text-${overallColor}-700 mt-2 font-semibold text-sm">${overallBody}</p>
+            <div class="o-banner ${bannerClass}">
+                <div class="o-banner-head">
+                    <span class="o-banner-badge">${bannerLabel}</span>
+                    <span class="o-banner-title">${bannerTitle}</span>
                 </div>
+                <div class="o-banner-body">${bannerBody}</div>
                 ${overallRationale}
-                ${refButtons ? `<div class="mt-4 flex flex-wrap gap-2 justify-center">${refButtons}</div>` : ''}
+                ${refBlock}
             </div>
         </div>`;
 }
@@ -424,17 +403,22 @@ function updateResultsPanel() {
 // ─── UI HELPERS ──────────────────────────────────────────────────────────────
 
 function recBadgeClass(color) {
-    const map = { green: 'bg-green-100 text-green-800', red: 'bg-red-100 text-red-800', amber: 'bg-amber-100 text-amber-800', slate: 'bg-slate-100 text-slate-600' };
-    return map[color] || 'bg-slate-100 text-slate-600';
+    const map = {
+        green: 'is-success',
+        red:   'is-danger',
+        amber: 'is-warn',
+        slate: 'is-mute'
+    };
+    return map[color] || 'is-mute';
 }
 
 function getClassColor(classification) {
     const cls = (classification || '').toLowerCase();
-    if (cls.includes('pathogenic') && !cls.includes('likely') && !cls.includes('conflicting')) return 'bg-red-100 text-red-800';
-    if (cls.includes('likely pathogenic')) return 'bg-orange-100 text-orange-800';
-    if (cls.includes('uncertain') || cls.includes('vus')) return 'bg-yellow-100 text-yellow-800';
-    if (cls.includes('likely benign')) return 'bg-blue-100 text-blue-800';
-    if (cls.includes('benign') && !cls.includes('likely')) return 'bg-green-100 text-green-800';
-    if (cls.includes('conflicting')) return 'bg-purple-100 text-purple-800';
-    return 'bg-slate-100 text-slate-700';
+    if (cls.includes('pathogenic') && !cls.includes('likely') && !cls.includes('conflicting')) return 'cv-plp';
+    if (cls.includes('likely pathogenic')) return 'cv-lp';
+    if (cls.includes('uncertain') || cls.includes('vus')) return 'cv-vus';
+    if (cls.includes('likely benign')) return 'cv-lb';
+    if (cls.includes('benign') && !cls.includes('likely')) return 'cv-benign';
+    if (cls.includes('conflicting')) return 'cv-conflicting';
+    return 'cv-unknown';
 }
