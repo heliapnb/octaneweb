@@ -64,345 +64,482 @@ const allGenes = [...new Set([
 // --- GERMLINE LOGIC ---
 
 function initGermline() {
-    const dl = document.getElementById('geneDatalist');
-    allGenes.forEach(g => { const o = document.createElement('option'); o.value = g; dl.appendChild(o); });
+    window.variantStates = [];
 }
 
-function handleGermlineChange() {
-    const geneEl = document.getElementById('gGene');
-    const details = document.getElementById('gDetails');
-    if (!geneEl) return;
-    const gene = geneEl.value.toUpperCase().trim();
 
-    // Reset downstream sections when gene changes
-    document.getElementById('dbResults')?.classList.add('hidden');
-    document.getElementById('gPostPLP')?.classList.add('hidden');
-    const empty = document.getElementById('gEmptyState');
-    const resultContent = document.getElementById('gResultContent');
-    if (empty) empty.classList.remove('hidden');
-    if (resultContent) { resultContent.classList.add('hidden'); resultContent.innerHTML = ''; }
+// ─── MULTI-VARIANT STATE ────────────────────────────────────────────────────
 
-    if (!gene) { if (details) details.classList.add('hidden'); return; }
-    if (details) details.classList.remove('hidden');
+window.variantStates = [];
+
+function parseVariants(input) {
+    if (!input || !input.trim()) return [];
+    return input.split(',').map(v => {
+        v = v.trim();
+        const match = v.match(/^([A-Za-z0-9]+)\s+(c\..+)$/i);
+        if (!match) return null;
+        return {
+            gene: match[1].toUpperCase(),
+            coding: match[2].trim(),
+            clinvarDone: false,
+            clinvarClass: null,
+            clinvarSignificance: null,
+            clinvarId: null,
+            clinvarTotal: 0,
+            clinvarSummary: '',
+            plpConfirmed: null,   // true | false | null
+            contextAnswer: null,  // 'yes' | 'no' | null
+            ageInput: '',
+            multiVariant: false,
+        };
+    }).filter(Boolean);
 }
 
-// Stores the Yes/No answer for context-gated genes; reset on each new lookup/gene change
-window.germlineContextAnswer = null;
+// ─── LOOKUP ─────────────────────────────────────────────────────────────────
 
-function setContextAnswer(val) {
-    window.germlineContextAnswer = val;
-    // Highlight the active button
-    const yesBtn = document.getElementById('ctxYesBtn');
-    const noBtn  = document.getElementById('ctxNoBtn');
-    if (yesBtn && noBtn) {
-        yesBtn.className = val === 'yes'
-            ? 'flex-1 py-3 bg-green-600 text-white text-xs font-black rounded-lg uppercase tracking-widest ring-2 ring-green-400'
-            : 'flex-1 py-3 bg-white border-2 border-slate-300 text-slate-500 text-xs font-black rounded-lg uppercase tracking-widest hover:border-green-400 hover:text-green-700 transition-all';
-        noBtn.className = val === 'no'
-            ? 'flex-1 py-3 bg-red-500 text-white text-xs font-black rounded-lg uppercase tracking-widest ring-2 ring-red-300'
-            : 'flex-1 py-3 bg-white border-2 border-slate-300 text-slate-500 text-xs font-black rounded-lg uppercase tracking-widest hover:border-red-400 hover:text-red-600 transition-all';
+async function lookupAllVariants() {
+    const input = document.getElementById('gVariantInput')?.value || '';
+    const states = parseVariants(input);
+    if (!states.length) {
+        alert('Please enter at least one variant in the format: GENE c.xxxxx');
+        return;
     }
-    runGermlineLogic();
+    window.variantStates = states;
+    document.getElementById('gVariantCards').classList.remove('hidden');
+    resetRightPanel();
+    renderVariantCards();
+    for (let i = 0; i < states.length; i++) {
+        await lookupSingleVariant(i);
+        renderVariantCards();
+        updateResultsPanel();
+    }
 }
 
-function renderContextPanel(title, criteria) {
-    const bullets = criteria.map(c => `<li>${c}</li>`).join('');
+async function lookupSingleVariant(idx) {
+    const state = window.variantStates[idx];
+    const { gene, coding } = state;
+    try {
+        const searchTerm = encodeURIComponent(`${gene}[gene] ${coding}`);
+        const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=clinvar&term=${searchTerm}&retmode=json&retmax=5`;
+        const searchData = await (await fetch(searchUrl)).json();
+        const ids = searchData.esearchresult?.idlist || [];
+        if (!ids.length) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
+
+        const summaryData = await (await fetch(
+            `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=${ids[0]}&retmode=json`
+        )).json();
+        const variant = summaryData.result?.[ids[0]];
+        if (!variant) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
+
+        const variantTitle = (variant.title || variant.variation_name || '').toLowerCase();
+        if (!variantTitle.includes(coding.toLowerCase().replace(/\s/g, ''))) {
+            state.clinvarDone = true; state.clinvarSignificance = 'none'; return;
+        }
+
+        const overallClass = variant.germline_classification?.description || '';
+        if (!overallClass) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
+
+        const scvs = variant.supporting_submissions?.scv || [];
+        const counts = {};
+        scvs.forEach(s => { const c = s.germline_classification; if (c) counts[c] = (counts[c] || 0) + 1; });
+
+        state.clinvarDone = true;
+        state.clinvarClass = overallClass;
+        state.clinvarSignificance = classifySignificance(overallClass);
+        state.clinvarId = ids[0];
+        state.clinvarTotal = scvs.length;
+        state.clinvarSummary = Object.entries(counts).map(([c, n]) => `${n}× ${c}`).join(', ');
+
+        if (state.clinvarSignificance === 'plp') state.plpConfirmed = true;
+        else if (state.clinvarSignificance === 'vus' || state.clinvarSignificance === 'benign') state.plpConfirmed = false;
+    } catch (e) {
+        state.clinvarDone = true; state.clinvarSignificance = 'error';
+    }
+}
+
+function bypassAllVariants() {
+    const input = document.getElementById('gVariantInput')?.value || '';
+    const states = parseVariants(input);
+    if (!states.length) {
+        alert('Please enter at least one variant in the format: GENE c.xxxxx');
+        return;
+    }
+    states.forEach(s => { s.clinvarDone = false; s.plpConfirmed = true; });
+    window.variantStates = states;
+    document.getElementById('gVariantCards').classList.remove('hidden');
+    renderVariantCards();
+    updateResultsPanel();
+}
+
+// ─── STATE SETTERS ───────────────────────────────────────────────────────────
+
+function setVariantPLP(idx, confirmed) {
+    window.variantStates[idx].plpConfirmed = confirmed;
+    renderVariantCards();
+    updateResultsPanel();
+}
+
+function setVariantContextAnswer(idx, val) {
+    window.variantStates[idx].contextAnswer = val;
+    renderVariantCards();
+    updateResultsPanel();
+}
+
+function setVariantAge(idx, age) {
+    window.variantStates[idx].ageInput = age;
+    updateResultsPanel();
+}
+
+function setVariantMultiVariant(idx, checked) {
+    window.variantStates[idx].multiVariant = checked;
+    updateResultsPanel();
+}
+
+// ─── CARD RENDERING ──────────────────────────────────────────────────────────
+
+function renderVariantCards() {
+    const container = document.getElementById('gVariantCards');
+    if (!container) return;
+    container.innerHTML = window.variantStates.map((s, i) => renderVariantCard(s, i)).join('');
+}
+
+function renderVariantCard(state, idx) {
+    const { gene, coding, clinvarDone, clinvarClass, clinvarSignificance, clinvarId, clinvarTotal, clinvarSummary, plpConfirmed } = state;
+
+    // ClinVar section
+    let clinvarHtml = '';
+    if (!clinvarDone && plpConfirmed === null) {
+        clinvarHtml = `<div class="h-5 bg-slate-100 rounded animate-pulse"></div><div class="h-5 bg-slate-100 rounded animate-pulse w-3/4 mt-1"></div>`;
+    } else if (clinvarSignificance === 'error') {
+        clinvarHtml = `<p class="text-xs text-red-500 font-bold">ClinVar lookup failed. Check your connection.</p>`;
+    } else if (clinvarDone && (clinvarSignificance === 'plp' || clinvarSignificance === 'vus' || clinvarSignificance === 'benign' || clinvarSignificance === 'conflicting' || clinvarSignificance === 'unknown')) {
+        const colorClass = getClassColor(clinvarClass);
+        clinvarHtml = `
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ClinVar Germline</span>
+                <span class="px-2 py-1 rounded-full text-xs font-black ${colorClass}">${clinvarClass}</span>
+            </div>
+            ${clinvarTotal > 0 ? `<p class="text-xs text-slate-500">${clinvarSummary}</p>` : ''}
+            <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${clinvarId}/" target="_blank" class="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest"><i class="fas fa-external-link-alt mr-1"></i>ClinVar record</a>`;
+    } else if (clinvarDone && clinvarSignificance === 'none') {
+        clinvarHtml = `<p class="text-xs font-bold text-slate-600">Not found on ClinVar.</p>`;
+    }
+
+    // P/LP decision buttons (for conflicting, unknown, or not found)
+    let plpButtons = '';
+    if (clinvarDone && (clinvarSignificance === 'none' || clinvarSignificance === 'conflicting' || clinvarSignificance === 'unknown')) {
+        const yesActive = plpConfirmed === true;
+        const noActive  = plpConfirmed === false;
+        plpButtons = `
+            <div class="space-y-2 pt-2 border-t border-slate-100">
+                <p class="text-xs text-slate-500 font-semibold">Check Franklin and Varsome, then indicate classification:</p>
+                <div class="flex gap-2">
+                    <a href="https://franklin.genoox.com/clinical-db/home" target="_blank"
+                        class="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 uppercase tracking-widest">
+                        <i class="fas fa-external-link-alt"></i> Franklin
+                    </a>
+                    <a href="https://varsome.com/" target="_blank"
+                        class="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 uppercase tracking-widest">
+                        <i class="fas fa-external-link-alt"></i> Varsome
+                    </a>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="setVariantPLP(${idx}, true)"
+                        class="flex-1 py-2 text-xs font-black rounded-lg uppercase tracking-widest ${yesActive ? 'bg-green-600 text-white ring-2 ring-green-400' : 'bg-white border-2 border-slate-300 text-slate-500 hover:border-green-400 hover:text-green-700 transition-all'}">
+                        <i class="fas fa-check mr-1"></i> P / LP
+                    </button>
+                    <button onclick="setVariantPLP(${idx}, false)"
+                        class="flex-1 py-2 text-xs font-black rounded-lg uppercase tracking-widest ${noActive ? 'bg-red-500 text-white ring-2 ring-red-300' : 'bg-white border-2 border-slate-300 text-slate-500 hover:border-red-400 hover:text-red-600 transition-all'}">
+                        <i class="fas fa-times mr-1"></i> Not P / LP
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    // Context / age section (only if P/LP confirmed)
+    const contextHtml = plpConfirmed === true ? renderVariantContextSection(state, idx) : '';
+
     return `
-        <p class="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2">${title}</p>
-        <ul class="text-xs text-slate-600 font-semibold space-y-1 list-disc list-inside mb-4">${bullets}</ul>
-        <p class="text-xs text-slate-500 mb-2">Does this case meet one or more of the above criteria?</p>
-        <div class="flex gap-2">
-            <button id="ctxYesBtn" onclick="setContextAnswer('yes')"
-                class="flex-1 py-3 bg-white border-2 border-slate-300 text-slate-500 text-xs font-black rounded-lg uppercase tracking-widest hover:border-green-400 hover:text-green-700 transition-all">
-                <i class="fas fa-check mr-1"></i> Yes
-            </button>
-            <button id="ctxNoBtn" onclick="setContextAnswer('no')"
-                class="flex-1 py-3 bg-white border-2 border-slate-300 text-slate-500 text-xs font-black rounded-lg uppercase tracking-widest hover:border-red-400 hover:text-red-600 transition-all">
-                <i class="fas fa-times mr-1"></i> No
-            </button>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3 animate-fade-in">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="px-3 py-1 bg-slate-800 text-white rounded-lg font-mono font-black text-sm">${gene}</span>
+                <span class="font-mono text-sm text-slate-600 font-bold">${coding}</span>
+            </div>
+            ${clinvarHtml ? `<div class="space-y-1">${clinvarHtml}</div>` : ''}
+            ${plpButtons}
+            ${contextHtml}
         </div>`;
 }
 
-function updateContextDisplay() {
-    const geneEl = document.getElementById('gGene');
-    const codingEl = document.getElementById('gCoding');
-    const context = document.getElementById('gContext');
-    const ageSection = document.getElementById('gAgeSection');
-    const multiVariantSection = document.getElementById('gMultiVariantSection');
+function renderVariantContextSection(state, idx) {
+    const { gene, coding, contextAnswer, ageInput, multiVariant } = state;
+    const founderAPC = 'c.3920T>A', founderTP53 = 'c.1010G>A';
 
-    if (!geneEl) return;
-    const gene = geneEl.value.toUpperCase().trim();
-    const coding = codingEl ? codingEl.value.trim() : '';
-
-    // Reset all dynamic sections and context answer
-    window.germlineContextAnswer = null;
-    if (context) { context.innerHTML = ''; context.classList.add('hidden'); }
-    if (ageSection) ageSection.classList.add('hidden');
-    if (multiVariantSection) {
-        multiVariantSection.classList.add('hidden');
-        const cb = document.getElementById('gMultiVariant');
-        if (cb) cb.checked = false;
+    if (gene === 'VHL') {
+        return renderInlineYesNo(idx, 'Is the tumour Renal Cell Carcinoma?', ['Renal Cell Carcinoma'], contextAnswer);
     }
-
-    if (!gene) return;
-
-    // VHL: context panel — RCC makes it NOT recommended; any other context is fine
-    if (gene === "VHL") {
-        context.classList.remove('hidden');
-        context.innerHTML = renderContextPanel(
-            "Clinical Context — VHL",
-            ["Renal Cell Carcinoma"]
-        );
-        return;
-    }
-
-    // Context-gated genes: show criteria as bullet list with Yes/No
     if (contextGenes[gene]) {
-        context.classList.remove('hidden');
-        context.innerHTML = renderContextPanel(
-            `Clinical contexts supporting germline confirmation — ${gene}`,
-            contextGenes[gene]
-        );
-        return;
+        return renderInlineYesNo(idx, `Criteria supporting germline confirmation — ${gene}`, contextGenes[gene], contextAnswer);
     }
-
-    // APC or TP53: show 2+ variants checkbox only when variant is not the known founder
-    if (gene === "APC" || gene === "TP53") {
-        const founderVariant = gene === "APC" ? "c.3920T>A" : "c.1010G>A";
-        if (!coding.includes(founderVariant)) {
-            multiVariantSection.classList.remove('hidden');
-            const label = document.getElementById('gMultiVariantLabel');
-            if (label) label.textContent = `2 or more reported P/LP variants identified in ${gene}`;
-            if (gene === "APC") ageSection.classList.remove('hidden');
-        }
-        return;
+    if (gene === 'APC' && !coding.includes(founderAPC)) {
+        return `
+            <div class="pt-2 border-t border-slate-100 space-y-3">
+                <label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer">
+                    <input type="checkbox" ${multiVariant ? 'checked' : ''} onchange="setVariantMultiVariant(${idx}, this.checked)" class="w-4 h-4">
+                    2 or more reported P/LP variants in APC
+                </label>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Age at diagnosis</label>
+                    <input type="number" value="${ageInput}" placeholder="e.g. 28" min="1" max="120"
+                        oninput="setVariantAge(${idx}, this.value)"
+                        class="w-full mt-1 p-3 border border-slate-300 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-sm">
+                </div>
+            </div>`;
     }
-
-    // EGFR: context panel for TKI naïve if specific variant; always show age section
-    if (gene === "EGFR") {
-        if (coding.includes("c.2369C>T")) {
-            context.classList.remove('hidden');
-            context.innerHTML = renderContextPanel(
-                "Clinical Context — EGFR c.2369C>T",
-                ["Patient is TKI Treatment-Naïve"]
-            );
-        }
-        ageSection.classList.remove('hidden');
-        return;
+    if (gene === 'TP53' && !coding.includes(founderTP53)) {
+        return `
+            <div class="pt-2 border-t border-slate-100">
+                <label class="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer">
+                    <input type="checkbox" ${multiVariant ? 'checked' : ''} onchange="setVariantMultiVariant(${idx}, this.checked)" class="w-4 h-4">
+                    2 or more reported P/LP variants in TP53
+                </label>
+            </div>`;
     }
-
-    // All other Step 8 genes: show age section
+    if (gene === 'EGFR' && coding.includes('c.2369C>T')) {
+        return renderInlineYesNo(idx, 'Clinical Context — EGFR c.2369C>T', ['Patient is TKI Treatment-Naïve'], contextAnswer) +
+            renderAgeInput(idx, ageInput);
+    }
     if (step8Genes.includes(gene)) {
-        ageSection.classList.remove('hidden');
+        return renderAgeInput(idx, ageInput);
     }
+    return '';
 }
 
-function runGermlineLogic() {
-    const geneEl = document.getElementById('gGene');
-    const codingEl = document.getElementById('gCoding');
-    const ageEl = document.getElementById('gAge');
-    const empty = document.getElementById('gEmptyState');
-    const resultContent = document.getElementById('gResultContent');
+function renderInlineYesNo(idx, title, criteria, currentAnswer) {
+    const bullets = criteria.map(c => `<li>${c}</li>`).join('');
+    const yesActive = currentAnswer === 'yes';
+    const noActive  = currentAnswer === 'no';
+    return `
+        <div class="pt-2 border-t border-slate-100 space-y-2">
+            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">${title}</p>
+            <ul class="text-xs text-slate-600 font-semibold space-y-1 list-disc list-inside">${bullets}</ul>
+            <p class="text-xs text-slate-500">Does this case meet one or more of the above criteria?</p>
+            <div class="flex gap-2">
+                <button onclick="setVariantContextAnswer(${idx}, 'yes')"
+                    class="flex-1 py-2 text-xs font-black rounded-lg uppercase tracking-widest ${yesActive ? 'bg-green-600 text-white ring-2 ring-green-400' : 'bg-white border-2 border-slate-300 text-slate-500 hover:border-green-400 hover:text-green-700 transition-all'}">
+                    <i class="fas fa-check mr-1"></i> Yes
+                </button>
+                <button onclick="setVariantContextAnswer(${idx}, 'no')"
+                    class="flex-1 py-2 text-xs font-black rounded-lg uppercase tracking-widest ${noActive ? 'bg-red-500 text-white ring-2 ring-red-300' : 'bg-white border-2 border-slate-300 text-slate-500 hover:border-red-400 hover:text-red-600 transition-all'}">
+                    <i class="fas fa-times mr-1"></i> No
+                </button>
+            </div>
+        </div>`;
+}
 
-    if (!geneEl || !codingEl || !empty || !resultContent) return;
+function renderAgeInput(idx, ageInput) {
+    return `
+        <div class="pt-2 border-t border-slate-100">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Age at diagnosis</label>
+            <input type="number" value="${ageInput}" placeholder="e.g. 28" min="1" max="120"
+                oninput="setVariantAge(${idx}, this.value)"
+                class="w-full mt-1 p-3 border border-slate-300 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-sm">
+        </div>`;
+}
 
-    const gene = geneEl.value.toUpperCase().trim();
-    const coding = codingEl.value.trim();
-    const ageInput = ageEl ? ageEl.value.trim() : '';
+// ─── PURE RECOMMENDATION LOGIC ───────────────────────────────────────────────
+
+function computeRecommendationForVariant(state) {
+    const { gene, coding, plpConfirmed, contextAnswer, ageInput, multiVariant } = state;
+
+    if (plpConfirmed === null) return null;
+
+    if (plpConfirmed === false) return {
+        rec: 'NOT OFFERED', color: 'slate', icon: 'fa-ban',
+        sub: 'Variant not classified as P/LP.',
+        rationale: 'Germline confirmation is not recommended for variants not classified as pathogenic or likely pathogenic.',
+        refs: [], pending: false
+    };
+
     const ageUnder30 = ageInput !== '' && parseInt(ageInput) <= 30;
-    const ctxYes = window.germlineContextAnswer === 'yes';
-    const ctxNo  = window.germlineContextAnswer === 'no';
-    const multiVariantChecked = document.getElementById('gMultiVariant')?.checked || false;
+    const ctxYes = contextAnswer === 'yes';
+    const ctxNo  = contextAnswer === 'no';
 
-    if (!gene) {
-        empty.classList.remove('hidden');
-        resultContent.classList.add('hidden');
-        return;
-    }
-    empty.classList.add('hidden');
-    resultContent.classList.remove('hidden');
+    if (step3Genes.includes(gene)) return {
+        rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle',
+        sub: 'Identified in ESMO 2022 high-risk gene list.',
+        rationale: `${gene} meets the ≥5% germline conversion rate threshold across tumour types, identified as a Most or High-Actionability cancer susceptibility gene in analysis of 49,264 paired tumour-normal samples.`,
+        refs: [REFS.kuzbari], pending: false
+    };
 
-    // Step 3: Unconditionally RECOMMENDED
-    if (step3Genes.includes(gene)) {
-        return render("RECOMMENDED", "green", "fa-check-circle",
-            "Identified in ESMO 2022 high-risk gene list.",
-            `${gene} meets the ≥5% germline conversion rate threshold across tumor types, identified as a Most Actionable or High-Actionability cancer susceptibility gene in analysis of 49,264 paired tumor-normal samples.`,
-            [REFS.kuzbari]
-        );
+    if (gene === 'VHL') {
+        if (ctxYes) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'VHL confirmation not recommended for Renal Cell Carcinoma.', rationale: 'VHL has only 1.5% germline conversion rate in RCC due to very high somatic VHL mutation frequency.', refs: [REFS.kuzbari], pending: false };
+        if (ctxNo)  return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Recommended in non-RCC clinical contexts.', rationale: 'VHL has 59.4% germline conversion rate in non-RCC tumours.', refs: [REFS.kuzbari], pending: false };
+        return { pending: true };
     }
 
-    // VHL: RECOMMENDED unless RCC context (note 5)
-    if (gene === "VHL") {
-        if (ctxYes) return render("NOT OFFERED", "red", "fa-ban",
-            "VHL confirmation not recommended for Renal Cell Carcinoma.",
-            "VHL has only 1.5% germline conversion rate in renal cell carcinoma, due to the very high frequency of somatic VHL mutations in RCC. Germline confirmation is not recommended in this context.",
-            [REFS.kuzbari]
-        );
-        if (ctxNo) return render("RECOMMENDED", "green", "fa-check-circle",
-            "Recommended in non-RCC clinical contexts.",
-            "VHL has 59.4% germline conversion rate in non-RCC tumors, supporting germline confirmation outside of renal cell carcinoma.",
-            [REFS.kuzbari]
-        );
-        return render("REVIEW CONTEXT", "slate", "fa-search",
-            "Please answer the clinical context question above.",
-            null, null
-        );
-    }
-
-    // Step 3 (notes 1–4) + Step 7 (notes 10–16): context-gated
     if (contextGenes[gene]) {
-        if (ctxYes) return render("RECOMMENDED", "green", "fa-user-check",
-            "Clinical context met for germline confirmation.",
-            contextRationale[gene] || `${gene} germline conversion rate is context-dependent. Selected clinical context supports germline confirmation.`,
-            [REFS.kuzbari, REFS.ricker]
-        );
-        if (ctxNo) return render("NOT OFFERED", "red", "fa-ban",
-            "No applicable clinical context identified.",
-            `${gene} germline conversion rate is context-dependent. Without a matching clinical context, germline confirmation is not recommended per ESMO 2022 guidelines.`,
-            [REFS.kuzbari]
-        );
-        return render("REVIEW CONTEXT", "slate", "fa-search",
-            "Please answer the clinical context question above.",
-            null, null
-        );
+        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'Clinical context met for germline confirmation.', rationale: contextRationale[gene] || `${gene} germline conversion rate is context-dependent. Selected clinical context supports germline confirmation.`, refs: [REFS.kuzbari, REFS.ricker], pending: false };
+        if (ctxNo)  return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'No applicable clinical context identified.', rationale: `${gene} germline conversion rate is context-dependent. Without a matching clinical context, germline confirmation is not recommended.`, refs: [REFS.kuzbari], pending: false };
+        return { pending: true };
     }
 
-    // MUTYH: founder variants only (Step 5)
-    if (gene === "MUTYH") {
-        if (coding.includes("c.452A>G") || coding.includes("c.1103G>A")) {
-            return render("RECOMMENDED", "green", "fa-fingerprint",
-                "Known MUTYH founder variant identified.",
-                "MUTYH has a 98.5% germline conversion rate. The detected variant is a known founder mutation, confirming germline origin.",
-                [REFS.klek, REFS.kuzbari]
-            );
-        }
-        return render("NOT OFFERED", "red", "fa-ban",
-            "MUTYH variant is not a known founder mutation (c.452A>G or c.1103G>A).",
-            "While MUTYH has a 98.5% germline conversion rate, this workflow recommends confirmation only for the established founder variants c.452A>G and c.1103G>A.",
-            [REFS.klek, REFS.kuzbari]
-        );
+    if (gene === 'MUTYH') {
+        if (coding.includes('c.452A>G') || coding.includes('c.1103G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known MUTYH founder variant identified.', rationale: 'MUTYH has a 98.5% germline conversion rate. The detected variant is a known founder mutation.', refs: [REFS.klek, REFS.kuzbari], pending: false };
+        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'Not a known MUTYH founder variant.', rationale: 'Confirmation is reserved for the established founder variants c.452A>G and c.1103G>A.', refs: [REFS.klek, REFS.kuzbari], pending: false };
     }
 
-    // APC: founder variant or 2+ P/LP variants (Step 5)
-    if (gene === "APC") {
-        if (coding.includes("c.3920T>A")) return render("RECOMMENDED", "green", "fa-fingerprint",
-            "Known APC founder variant (c.3920T>A) identified.",
-            "APC c.3920T>A is a known germline founder mutation. APC has only 1.1% overall germline conversion rate due to high somatic mutation frequency, but this specific variant is a confirmed germline founder.",
-            [REFS.klek, REFS.kuzbari]
-        );
-        if (multiVariantChecked) return render("RECOMMENDED", "green", "fa-check-circle",
-            "2 or more P/LP variants reported in APC.",
-            "The presence of 2 or more pathogenic/likely pathogenic variants in APC substantially increases germline probability over somatic. APC overall germline conversion rate is 1.1%, but biallelic findings are a strong indicator of germline predisposition.",
-            [REFS.amp, REFS.kuzbari]
-        );
-        if (ageUnder30) return render("RECOMMENDED", "green", "fa-check-circle",
-            "Tumour diagnosed at ≤30 years of age.",
-            "ESMO 2022 recommends germline confirmation for APC variants in patients diagnosed at or below 30 years of age, as germline probability is substantially elevated in early-onset presentations.",
-            [REFS.kuzbari]
-        );
-        if (ageInput !== '' && !ageUnder30) return render("NOT OFFERED", "red", "fa-ban",
-            "APC variant does not meet criteria for germline confirmation.",
-            "APC has only 1.1% overall germline conversion rate due to its very high somatic mutation frequency in colorectal tumors. Confirmation is reserved for the known founder variant (c.3920T>A), biallelic P/LP findings, or diagnosis at ≤30 years of age.",
-            [REFS.kuzbari, REFS.klek]
-        );
-        return render("REVIEW CONTEXT", "slate", "fa-search",
-            "Enter patient age and/or check applicable criteria above.",
-            null, null
-        );
+    if (gene === 'APC') {
+        if (coding.includes('c.3920T>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known APC founder variant (c.3920T>A).', rationale: 'APC c.3920T>A is a known germline founder mutation.', refs: [REFS.klek, REFS.kuzbari], pending: false };
+        if (multiVariant) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: '2 or more P/LP variants in APC.', rationale: 'Biallelic P/LP findings substantially increase germline probability over the 1.1% baseline GCR.', refs: [REFS.amp, REFS.kuzbari], pending: false };
+        if (ageUnder30) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Tumour diagnosed at ≤30 years.', rationale: 'ESMO 2022 recommends germline confirmation for APC variants in patients diagnosed at or below 30 years.', refs: [REFS.kuzbari], pending: false };
+        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'APC variant does not meet criteria.', rationale: 'APC has only 1.1% overall GCR. Confirmation is reserved for c.3920T>A, biallelic findings, or diagnosis ≤30y.', refs: [REFS.kuzbari, REFS.klek], pending: false };
+        return { pending: true };
     }
 
-    // TP53: founder variant or 2+ P/LP variants (Step 5)
-    if (gene === "TP53") {
-        if (coding.includes("c.1010G>A")) return render("RECOMMENDED", "green", "fa-fingerprint",
-            "Known TP53 founder variant (c.1010G>A) identified.",
-            "TP53 c.1010G>A is a known germline founder mutation. TP53 overall germline conversion rate is 0.9% (rising to 15.8% in patients ≤30 years), but this specific variant is a confirmed germline founder.",
-            [REFS.klek, REFS.kuzbari]
-        );
-        if (multiVariantChecked) return render("RECOMMENDED", "green", "fa-check-circle",
-            "2 or more P/LP variants reported in TP53.",
-            "Two or more P/LP variants in TP53 substantially increases germline probability. TP53 overall germline conversion rate is 0.9%, but biallelic or multiple findings are indicative of germline origin.",
-            [REFS.amp, REFS.kuzbari]
-        );
-        return render("NOT OFFERED", "red", "fa-ban",
-            "TP53 variant does not meet criteria for germline confirmation.",
-            "TP53 has only 0.9% overall germline conversion rate due to its very high frequency as a somatic driver mutation. Confirmation is reserved for the known founder variant (c.1010G>A) or biallelic findings.",
-            [REFS.kuzbari, REFS.klek]
-        );
+    if (gene === 'TP53') {
+        if (coding.includes('c.1010G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TP53 founder variant (c.1010G>A).', rationale: 'TP53 c.1010G>A is a known germline founder mutation.', refs: [REFS.klek, REFS.kuzbari], pending: false };
+        if (multiVariant) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: '2 or more P/LP variants in TP53.', rationale: 'Multiple P/LP findings in TP53 are indicative of germline origin.', refs: [REFS.amp, REFS.kuzbari], pending: false };
+        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'TP53 variant does not meet criteria.', rationale: 'TP53 has only 0.9% overall GCR. Confirmation is reserved for c.1010G>A or biallelic findings.', refs: [REFS.kuzbari, REFS.klek], pending: false };
     }
 
-    // HOXB13: founder variant → RECOMMENDED (Step 6); else fall to Step 8
-    if (gene === "HOXB13" && coding.includes("c.251G>A")) {
-        return render("RECOMMENDED", "green", "fa-fingerprint",
-            "Known HOXB13 founder variant (c.251G>A) identified.",
-            "HOXB13 c.251G>A is a known founder germline variant associated with hereditary prostate cancer risk.",
-            [REFS.klek, REFS.clark]
-        );
+    if (gene === 'HOXB13' && coding.includes('c.251G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known HOXB13 founder variant (c.251G>A).', rationale: 'HOXB13 c.251G>A is a known founder germline variant associated with hereditary prostate cancer.', refs: [REFS.klek, REFS.clark], pending: false };
+
+    if (gene === 'TERT' && coding.includes('c.-57T>G')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TERT founder variant (c.-57T>G).', rationale: 'TERT c.-57T>G is a known founder germline variant associated with increased cancer susceptibility.', refs: [REFS.klek, REFS.clark], pending: false };
+
+    if (gene === 'EGFR' && coding.includes('c.2369C>T')) {
+        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'EGFR c.2369C>T in TKI treatment-naïve patient.', rationale: 'EGFR c.2369C>T (p.T790M) in a TKI-naïve patient suggests germline origin rather than acquired resistance.', refs: [REFS.ricker], pending: false };
+        if (ctxNo)  { /* fall through to step8 */ }
+        else        return { pending: true };
     }
 
-    // TERT: founder variant → RECOMMENDED (Step 6); else fall to Step 8
-    if (gene === "TERT" && coding.includes("c.-57T>G")) {
-        return render("RECOMMENDED", "green", "fa-fingerprint",
-            "Known TERT founder variant (c.-57T>G) identified.",
-            "TERT c.-57T>G is a known founder germline variant associated with increased cancer susceptibility.",
-            [REFS.klek, REFS.clark]
-        );
-    }
-
-    // EGFR: c.2369C>T + TKI treatment-naïve → RECOMMENDED (note 7); else fall to Step 8
-    if (gene === "EGFR" && coding.includes("c.2369C>T") && ctxYes) {
-        return render("RECOMMENDED", "green", "fa-user-check",
-            "EGFR c.2369C>T in TKI treatment-naïve patient.",
-            "EGFR c.2369C>T (p.T790M) in a TKI treatment-naïve patient suggests germline origin rather than an acquired resistance mutation. Germline confirmation recommended per ASCO 2024 guidelines.",
-            [REFS.ricker]
-        );
-    }
-
-    // Step 8: age-gated
     if (step8Genes.includes(gene)) {
-        if (ageInput === '') return render("REVIEW CONTEXT", "slate", "fa-search",
-            "Enter patient age at diagnosis to continue.",
-            null, null
-        );
-        if (ageUnder30) return render("REVIEW / MDT", "amber", "fa-users",
-            "Discuss with multidisciplinary team.",
-            `${gene} has low overall germline conversion rate but elevated germline probability in patients ≤30 years at diagnosis. MDT discussion is recommended to determine if germline testing should be offered.`,
-            [REFS.kuzbari, REFS.ricker]
-        );
-        return render("NOT OFFERED", "red", "fa-ban",
-            "Patient age does not meet criteria for germline confirmation.",
-            `${gene} has low overall germline conversion rate. Germline follow-up for this gene is only considered when the patient was diagnosed at age ≤30. Current patient age does not meet this threshold.`,
-            [REFS.kuzbari]
-        );
+        if (ageInput === '') return { pending: true };
+        if (ageUnder30) return { rec: 'REVIEW / MDT', color: 'amber', icon: 'fa-users', sub: `${gene} — MDT review recommended (age ≤30).`, rationale: `${gene} has low overall GCR but elevated germline probability in patients ≤30 years at diagnosis. MDT discussion recommended.`, refs: [REFS.kuzbari, REFS.ricker], pending: false };
+        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: `${gene} — age >30 does not meet criteria.`, rationale: `${gene} germline follow-up is only considered for patients diagnosed at ≤30 years.`, refs: [REFS.kuzbari], pending: false };
     }
 
-    // Not in any list
-    return render("NOT OFFERED", "red", "fa-ban",
-        "Variant does not meet current criteria for germline confirmation.",
-        "This gene is not included in the current germline confirmation workflow.",
-        null
-    );
+    return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'Gene not in CCO germline workflow.', rationale: `${gene} is not included in the current CCO germline confirmation workflow.`, refs: [], pending: false };
 }
 
-function render(rec, color, icon, sub, rationale, refs) {
-    const gene = document.getElementById('gGene').value.toUpperCase().trim();
-    const coding = document.getElementById('gCoding').value.trim();
+// ─── RESULTS PANEL ───────────────────────────────────────────────────────────
 
-    const refLinks = refs && refs.length > 0
-        ? refs.map(r => `<a href="${r.url}" target="_blank" rel="noopener noreferrer" class="inline-block px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-blue-600 hover:underline">${r.text}</a>`).join(' ')
-        : '';
+function resetRightPanel() {
+    const empty = document.getElementById('gEmptyState');
+    const content = document.getElementById('gResultContent');
+    if (empty) empty.classList.remove('hidden');
+    if (content) { content.classList.add('hidden'); content.innerHTML = ''; }
+}
 
-    document.getElementById('gResultContent').innerHTML = `
-        <div class="bg-${color}-50 border-${color}-500 border-4 rounded-3xl p-10 h-full flex flex-col items-center justify-center text-center shadow-xl animate-fade-in">
-            <i class="fas ${icon} fa-4xl text-${color}-600 mb-6"></i>
-            <h3 class="text-3xl font-black text-${color}-900 uppercase">Germline Confirmation:<br>${rec}</h3>
-            <p class="text-lg text-${color}-700 mt-4 font-semibold">${sub}</p>
-            ${rationale ? `<p class="text-sm text-${color}-800 mt-3 max-w-lg opacity-80">${rationale}</p>` : ''}
-            <div class="mt-6 px-6 py-3 bg-white border rounded-xl font-mono font-bold text-slate-800">${gene} ${coding}</div>
-            ${refLinks ? `<div class="mt-4 flex flex-wrap gap-2 justify-center">${refLinks}</div>` : ''}
+function updateResultsPanel() {
+    const empty = document.getElementById('gEmptyState');
+    const content = document.getElementById('gResultContent');
+    if (!content) return;
+
+    const states = window.variantStates;
+    if (!states || !states.length) return;
+
+    const pairs = states.map(s => ({ state: s, result: computeRecommendationForVariant(s) }));
+    const anyComputed = pairs.some(p => p.result && !p.result.pending);
+    if (!anyComputed) return;
+
+    if (empty) empty.classList.add('hidden');
+    content.classList.remove('hidden');
+
+    // Table rows
+    const rows = pairs.map(({ state, result }) => {
+        const { gene, coding, clinvarClass } = state;
+        const recCell = !result
+            ? `<span class="px-2 py-1 bg-slate-100 text-slate-400 rounded text-xs font-black">Loading</span>`
+            : result.pending
+            ? `<span class="px-2 py-1 bg-slate-100 text-slate-500 rounded text-xs font-black">Pending</span>`
+            : `<span class="px-2 py-1 rounded text-xs font-black ${recBadgeClass(result.color)}">${result.rec}</span>`;
+
+        const cvCell = clinvarClass
+            ? `<span class="px-2 py-1 rounded-full text-xs font-black ${getClassColor(clinvarClass)}">${clinvarClass}</span>`
+            : `<span class="text-xs text-slate-400">—</span>`;
+
+        const refCell = (result && !result.pending && result.refs?.length)
+            ? result.refs.map(r => `<a href="${r.url}" target="_blank" class="text-blue-600 hover:underline text-xs">${r.text}</a>`).join('<br>')
+            : '—';
+
+        return `<tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="px-4 py-3 font-mono font-black text-sm text-slate-800 whitespace-nowrap">${gene}</td>
+            <td class="px-4 py-3 font-mono text-sm text-slate-600 whitespace-nowrap">${coding}</td>
+            <td class="px-4 py-3">${cvCell}</td>
+            <td class="px-4 py-3">${recCell}</td>
+            <td class="px-4 py-3">${refCell}</td>
+        </tr>`;
+    }).join('');
+
+    // Overall recommendation
+    const resolved = pairs.filter(p => p.result && !p.result.pending);
+    const allResolved = resolved.length === pairs.length;
+    const recommended = resolved.filter(p => p.result.rec === 'RECOMMENDED');
+    const mdt = resolved.filter(p => p.result.rec === 'REVIEW / MDT');
+    const notOffered = resolved.filter(p => p.result.rec === 'NOT OFFERED');
+
+    let overallColor, overallIcon, overallTitle, overallBody;
+    if (!allResolved) {
+        overallColor = 'slate'; overallIcon = 'fa-clock';
+        overallTitle = 'PENDING';
+        overallBody = 'Complete context questions for all variants to see the final recommendation.';
+    } else if (recommended.length || mdt.length) {
+        overallColor = 'green'; overallIcon = 'fa-check-circle';
+        overallTitle = 'GERMLINE CONFIRMATION RECOMMENDED';
+        const parts = [];
+        if (recommended.length) parts.push(`Recommended: ${recommended.map(p => p.state.gene).join(', ')}`);
+        if (mdt.length) parts.push(`MDT review: ${mdt.map(p => p.state.gene).join(', ')}`);
+        if (notOffered.length) parts.push(`Not offered: ${notOffered.map(p => p.state.gene).join(', ')}`);
+        overallBody = parts.join(' · ');
+    } else {
+        overallColor = 'red'; overallIcon = 'fa-ban';
+        overallTitle = 'NOT OFFERED';
+        overallBody = 'None of the identified variants meet criteria for germline confirmation.';
+    }
+
+    // Deduplicated references from all resolved results
+    const seenRefs = new Set();
+    const allRefs = [];
+    resolved.forEach(p => (p.result.refs || []).forEach(r => { if (!seenRefs.has(r.text)) { seenRefs.add(r.text); allRefs.push(r); } }));
+    const refButtons = allRefs.map(r => `<a href="${r.url}" target="_blank" rel="noopener noreferrer" class="inline-block px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-blue-600 hover:underline">${r.text}</a>`).join(' ');
+
+    content.innerHTML = `
+        <div class="space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                <div class="px-6 py-4 border-b border-slate-100">
+                    <h3 class="font-black text-slate-800 uppercase tracking-tight text-sm">Variant Summary</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gene</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">cDNA</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">ClinVar</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Recommendation</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">References</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="bg-${overallColor}-50 border-4 border-${overallColor}-500 rounded-3xl p-8 text-center animate-fade-in">
+                <i class="fas ${overallIcon} fa-3x text-${overallColor}-600 mb-4"></i>
+                <h3 class="text-2xl font-black text-${overallColor}-900 uppercase">${overallTitle}</h3>
+                <p class="text-${overallColor}-700 mt-2 font-semibold text-sm">${overallBody}</p>
+                ${refButtons ? `<div class="mt-4 flex flex-wrap gap-2 justify-center">${refButtons}</div>` : ''}
+            </div>
         </div>`;
 }
 
-// --- CLINVAR / FRANKLIN LOOKUP ---
+function recBadgeClass(color) {
+    const map = { green: 'bg-green-100 text-green-800', red: 'bg-red-100 text-red-800', amber: 'bg-amber-100 text-amber-800', slate: 'bg-slate-100 text-slate-600' };
+    return map[color] || 'bg-slate-100 text-slate-600';
+}
+
+// ─── UTILITIES ───────────────────────────────────────────────────────────────
 
 function classifySignificance(overallClass) {
     const cls = overallClass.toLowerCase();
@@ -411,198 +548,6 @@ function classifySignificance(overallClass) {
     if (cls.includes('benign')) return 'benign';
     if (cls.includes('pathogenic')) return 'plp';
     return 'unknown';
-}
-
-async function lookupVariant() {
-    const gene = document.getElementById('gGene').value.toUpperCase().trim();
-    const coding = document.getElementById('gCoding').value.trim();
-    const dbResults = document.getElementById('dbResults');
-    const dbContent = document.getElementById('dbContent');
-    const dbStatus = document.getElementById('dbStatus');
-
-    if (!gene || !coding) {
-        dbResults.classList.remove('hidden');
-        dbStatus.textContent = "Missing Input";
-        dbStatus.className = "px-3 py-1 bg-red-100 rounded-full text-[10px] font-black text-red-600 uppercase tracking-widest";
-        dbContent.innerHTML = `<p class="text-xs text-red-500 font-bold">Please enter both a gene name and cDNA variant before looking up.</p>`;
-        return;
-    }
-
-    // Reset downstream state
-    document.getElementById('gPostPLP')?.classList.add('hidden');
-    const empty = document.getElementById('gEmptyState');
-    const resultContent = document.getElementById('gResultContent');
-    if (empty) empty.classList.remove('hidden');
-    if (resultContent) { resultContent.classList.add('hidden'); resultContent.innerHTML = ''; }
-
-    dbResults.classList.remove('hidden');
-    dbStatus.textContent = "Searching ClinVar...";
-    dbStatus.className = "px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest";
-    dbContent.innerHTML = `<div class="h-8 rounded-xl bg-slate-100 animate-pulse"></div><div class="h-8 rounded-xl bg-slate-100 animate-pulse mt-2"></div>`;
-
-    try {
-        const searchTerm = encodeURIComponent(`${gene}[gene] ${coding}`);
-        const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=clinvar&term=${searchTerm}&retmode=json&retmax=5`;
-        const searchResp = await fetch(searchUrl);
-        if (!searchResp.ok) throw new Error('ClinVar search request failed');
-        const searchData = await searchResp.json();
-        const ids = searchData.esearchresult?.idlist || [];
-
-        if (ids.length === 0) {
-            showExternalLookup(gene, coding, dbContent, dbStatus, 'none');
-            return;
-        }
-
-        const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=${ids[0]}&retmode=json`;
-        const summaryResp = await fetch(summaryUrl);
-        if (!summaryResp.ok) throw new Error('ClinVar summary request failed');
-        const summaryData = await summaryResp.json();
-        const variant = summaryData.result?.[ids[0]];
-
-        if (!variant) {
-            showExternalLookup(gene, coding, dbContent, dbStatus, 'none');
-            return;
-        }
-
-        // Confirm the returned variant actually matches the entered cDNA — reject loose matches
-        const variantTitle = (variant.title || variant.variation_name || '').toLowerCase();
-        const codingNorm = coding.toLowerCase().replace(/\s/g, '');
-        if (!variantTitle.includes(codingNorm)) {
-            showExternalLookup(gene, coding, dbContent, dbStatus, 'none');
-            return;
-        }
-
-        // Only use germline classification — do not fall back to somatic/overall significance
-        const overallClass = variant.germline_classification?.description || '';
-        if (!overallClass) {
-            showExternalLookup(gene, coding, dbContent, dbStatus, 'none');
-            return;
-        }
-
-        const scvs = variant.supporting_submissions?.scv || [];
-        const counts = {};
-        scvs.forEach(scv => {
-            const cls = scv.germline_classification;
-            if (cls) counts[cls] = (counts[cls] || 0) + 1;
-        });
-        const total = scvs.length;
-        const submissionSummary = Object.entries(counts)
-            .map(([cls, n]) => `<span class="font-black">${n}×</span> ${cls}`)
-            .join(' &nbsp;·&nbsp; ');
-        const clinvarUrl = `https://www.ncbi.nlm.nih.gov/clinvar/variation/${ids[0]}/`;
-        const classColor = getClassColor(overallClass);
-        const significance = classifySignificance(overallClass);
-
-        // Show ClinVar result card
-        dbStatus.textContent = "ClinVar";
-        dbStatus.className = "px-3 py-1 bg-blue-100 rounded-full text-[10px] font-black text-blue-700 uppercase tracking-widest";
-        dbContent.innerHTML = `
-            <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overall Germline Classification</span>
-                    <span class="px-3 py-1 rounded-full text-xs font-black ${classColor}">${overallClass}</span>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-lg">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Submissions (${total} total)</p>
-                    <p class="text-sm text-slate-700">${total > 0 ? submissionSummary : 'No individual submissions recorded'}</p>
-                </div>
-                <a href="${clinvarUrl}" target="_blank" rel="noopener noreferrer"
-                   class="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">
-                   <i class="fas fa-external-link-alt"></i> View full record on ClinVar
-                </a>
-            </div>`;
-
-        if (significance === 'plp') {
-            proceedToGermlineLogic();
-        } else if (significance === 'vus' || significance === 'benign') {
-            renderNotRecommended(`ClinVar classifies this variant as <strong>${overallClass}</strong>. Germline confirmation testing is not recommended for variants classified as VUS or benign/likely benign.`);
-        } else {
-            // conflicting or unknown — append external lookup + P/LP decision buttons
-            showExternalLookup(gene, coding, dbContent, dbStatus, 'conflicting');
-        }
-
-    } catch (err) {
-        dbStatus.textContent = "Error";
-        dbStatus.className = "px-3 py-1 bg-red-100 rounded-full text-[10px] font-black text-red-600 uppercase tracking-widest";
-        dbContent.innerHTML = `<p class="text-xs text-red-500 font-bold">Could not reach ClinVar. Please check your connection or <a href="https://www.ncbi.nlm.nih.gov/clinvar/" target="_blank" class="underline">search manually</a>.</p>`;
-    }
-}
-
-function showExternalLookup(gene, coding, dbContent, dbStatus, reason) {
-    const isNone = reason === 'none';
-    const introText = isNone
-        ? `No ClinVar submissions found for <span class="font-mono font-bold">${gene} ${coding}</span>.`
-        : `ClinVar shows conflicting classifications for <span class="font-mono font-bold">${gene} ${coding}</span>.`;
-
-    if (isNone) {
-        dbStatus.textContent = "No ClinVar Data";
-        dbStatus.className = "px-3 py-1 bg-amber-100 rounded-full text-[10px] font-black text-amber-700 uppercase tracking-widest";
-        dbContent.innerHTML = '';
-    }
-
-    dbContent.innerHTML += `
-        <div class="space-y-4 ${isNone ? '' : 'pt-3 border-t border-slate-200 mt-3'}">
-            <p class="text-sm font-bold text-slate-700">${introText}</p>
-            <p class="text-xs text-slate-500">Check Franklin and Varsome for an alternative germline classification, then indicate the result below:</p>
-            <div class="flex gap-2">
-                <a href="https://franklin.genoox.com/clinical-db/home" target="_blank" rel="noopener noreferrer"
-                   class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 transition-all uppercase tracking-widest">
-                   <i class="fas fa-external-link-alt"></i> Franklin
-                </a>
-                <a href="https://varsome.com/" target="_blank" rel="noopener noreferrer"
-                   class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-white text-xs font-black rounded-lg hover:bg-slate-700 transition-all uppercase tracking-widest">
-                   <i class="fas fa-external-link-alt"></i> Varsome
-                </a>
-            </div>
-            <div class="pt-2 border-t border-slate-200">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Classification on Franklin / Varsome</p>
-                <div class="flex gap-2">
-                    <button onclick="userConfirmsPLP()" class="flex-1 py-3 bg-green-600 text-white text-xs font-black rounded-lg hover:bg-green-700 transition-all uppercase tracking-widest">
-                        <i class="fas fa-check mr-1"></i> P / LP
-                    </button>
-                    <button onclick="userDeniesPLP()" class="flex-1 py-3 bg-red-500 text-white text-xs font-black rounded-lg hover:bg-red-600 transition-all uppercase tracking-widest">
-                        <i class="fas fa-times mr-1"></i> Not P / LP
-                    </button>
-                </div>
-            </div>
-        </div>`;
-}
-
-function userConfirmsPLP() {
-    proceedToGermlineLogic();
-}
-
-function userDeniesPLP() {
-    renderNotRecommended('Variant is not classified as pathogenic or likely pathogenic on Franklin or Varsome. Germline confirmation testing is not recommended.');
-}
-
-function proceedToGermlineLogic() {
-    document.getElementById('gPostPLP')?.classList.remove('hidden');
-    updateContextDisplay();
-    runGermlineLogic();
-}
-
-function bypassLookup() {
-    document.getElementById('dbResults')?.classList.add('hidden');
-    proceedToGermlineLogic();
-}
-
-function renderNotRecommended(message) {
-    const gene = document.getElementById('gGene').value.toUpperCase().trim();
-    const coding = document.getElementById('gCoding').value.trim();
-    const empty = document.getElementById('gEmptyState');
-    const resultContent = document.getElementById('gResultContent');
-    if (empty) empty.classList.add('hidden');
-    if (resultContent) {
-        resultContent.classList.remove('hidden');
-        resultContent.innerHTML = `
-            <div class="bg-slate-50 border-slate-400 border-4 rounded-3xl p-10 h-full flex flex-col items-center justify-center text-center shadow-xl animate-fade-in">
-                <i class="fas fa-ban fa-4xl text-slate-500 mb-6"></i>
-                <h3 class="text-3xl font-black text-slate-800 uppercase">Germline Confirmation:<br>NOT RECOMMENDED</h3>
-                <p class="text-sm text-slate-600 mt-4 max-w-lg">${message}</p>
-                <div class="mt-6 px-6 py-3 bg-white border rounded-xl font-mono font-bold text-slate-800">${gene} ${coding}</div>
-            </div>`;
-    }
 }
 
 function getClassColor(classification) {
@@ -615,5 +560,3 @@ function getClassColor(classification) {
     if (cls.includes('conflicting')) return 'bg-purple-100 text-purple-800';
     return 'bg-slate-100 text-slate-700';
 }
-
-initGermline();

@@ -67,73 +67,39 @@
         <!-- Germline Section -->
         <section id="sec-germline" class="step-inactive space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <!-- Inputs Side -->
+
+                <!-- Left: Input + per-variant cards -->
                 <div class="lg:col-span-5 space-y-6">
-
-                    <!-- Step 1: Enter variant -->
-                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
-                        <h2 class="text-xl font-black text-slate-800 mb-4">Enter tumour variant to begin</h2>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Gene Name</label>
-                            <input list="geneDatalist" id="gGene" oninput="handleGermlineChange()" placeholder="e.g. CDH1"
-                                   class="w-full p-4 border border-slate-300 rounded-xl bg-slate-50 outline-none focus:ring-4 focus:ring-blue-100 font-bold uppercase">
-                            <datalist id="geneDatalist"></datalist>
-                        </div>
-                        <div id="gDetails" class="hidden space-y-4">
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">cDNA Change (Variant Info)</label>
-                                <input type="text" id="gCoding" placeholder="e.g. c.1103G>A"
-                                       class="w-full p-4 border border-slate-300 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-mono font-bold">
-                            </div>
-                            <button onclick="lookupVariant()" class="w-full py-4 bg-slate-800 text-white rounded-xl font-black uppercase tracking-widest hover:bg-slate-700 transition-all flex items-center justify-center gap-2 text-sm">
-                                <i class="fas fa-database"></i> Look Up in ClinVar
-                            </button>
-                            <button onclick="bypassLookup()" class="w-full py-3 bg-white border-2 border-slate-300 text-slate-500 rounded-xl font-black uppercase tracking-widest hover:border-slate-400 hover:text-slate-700 transition-all flex items-center justify-center gap-2 text-xs">
-                                <i class="fas fa-forward"></i> Skip — Check Gene Recommendations Only
-                            </button>
-                        </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                        <h2 class="text-xl font-black text-slate-800">Enter tumour variant(s) to begin</h2>
+                        <p class="text-xs text-slate-400 font-semibold">One or more variants separated by commas.<br>
+                            Example: <span class="font-mono">BRCA1 c.5266dupC, CHEK2 c.524dup</span></p>
+                        <textarea id="gVariantInput" rows="3" placeholder="GENE c.xxxxx, GENE c.xxxxx, ..."
+                            class="w-full p-4 border border-slate-300 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-mono font-bold resize-none text-sm"></textarea>
+                        <button onclick="lookupAllVariants()" class="w-full py-4 bg-slate-800 text-white rounded-xl font-black uppercase tracking-widest hover:bg-slate-700 transition-all flex items-center justify-center gap-2 text-sm">
+                            <i class="fas fa-database"></i> Look Up in ClinVar
+                        </button>
+                        <button onclick="bypassAllVariants()" class="w-full py-3 bg-white border-2 border-slate-300 text-slate-500 rounded-xl font-black uppercase tracking-widest hover:border-slate-400 hover:text-slate-700 transition-all flex items-center justify-center gap-2 text-xs">
+                            <i class="fas fa-forward"></i> Skip — Check Gene Recommendations Only
+                        </button>
                     </div>
 
-                    <!-- Step 2: ClinVar / Franklin result -->
-                    <div id="dbResults" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 animate-fade-in">
-                        <div class="flex items-center justify-between border-b pb-3">
-                            <h3 class="font-black text-slate-800 uppercase tracking-tight text-sm">Database Classification</h3>
-                            <span id="dbStatus" class="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest">Awaiting Lookup</span>
-                        </div>
-                        <div id="dbContent"></div>
-                    </div>
-
-                    <!-- Step 3: Clinical context (shown only after P/LP confirmed) -->
-                    <div id="gPostPLP" class="hidden space-y-4">
-                        <div id="gContext" class="hidden p-5 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
-                            <!-- Context checkboxes injected here -->
-                        </div>
-                        <div id="gMultiVariantSection" class="hidden p-5 bg-blue-50 rounded-xl border border-blue-100">
-                            <label class="flex items-center gap-3 text-xs font-bold text-slate-600 cursor-pointer">
-                                <input type="checkbox" id="gMultiVariant" class="w-4 h-4" onchange="runGermlineLogic()">
-                                <span id="gMultiVariantLabel"></span>
-                            </label>
-                        </div>
-                        <div id="gAgeSection" class="hidden">
-                            <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Patient Age at Diagnosis</label>
-                            <input type="number" id="gAge" placeholder="e.g. 28" min="1" max="120" oninput="runGermlineLogic()"
-                                   class="w-full p-4 border border-slate-300 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold">
-                        </div>
-                    </div>
-
+                    <!-- Per-variant cards (ClinVar results + context questions) -->
+                    <div id="gVariantCards" class="hidden space-y-4"></div>
                 </div>
 
-                <!-- Recommendation Side -->
+                <!-- Right: Summary table + overall recommendation -->
                 <div class="lg:col-span-7">
-                    <div id="gOutput" class="h-full bg-slate-100 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-8 transition-all min-h-[500px]">
+                    <div id="gOutput" class="bg-slate-100 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-8 transition-all min-h-[500px]">
                         <div id="gEmptyState" class="text-center text-slate-400">
                             <i class="fas fa-microscope fa-5x mb-6 opacity-20"></i>
                             <p class="text-xl font-bold">Awaiting Lookup</p>
-                            <p class="text-sm">Enter gene and variant, then look up in ClinVar to begin.</p>
+                            <p class="text-sm">Enter variant(s) and look up in ClinVar to begin.</p>
                         </div>
-                        <div id="gResultContent" class="hidden w-full h-full animate-fade-in"></div>
+                        <div id="gResultContent" class="hidden w-full animate-fade-in"></div>
                     </div>
                 </div>
+
             </div>
         </section>
     </main>
