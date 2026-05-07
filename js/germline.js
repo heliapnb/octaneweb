@@ -109,6 +109,7 @@ async function lookupAllVariants() {
     resetRightPanel();
     renderVariantCards();
     for (let i = 0; i < states.length; i++) {
+        if (i > 0) await new Promise(r => setTimeout(r, 700)); // stay within NCBI rate limit (3 req/sec)
         await lookupSingleVariant(i);
         renderVariantCards();
         updateResultsPanel();
@@ -121,13 +122,17 @@ async function lookupSingleVariant(idx) {
     try {
         const searchTerm = encodeURIComponent(`${gene}[gene] ${coding}`);
         const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=clinvar&term=${searchTerm}&retmode=json&retmax=5`;
-        const searchData = await (await fetch(searchUrl)).json();
+        const searchResp = await fetch(searchUrl);
+        if (!searchResp.ok) throw new Error(`ClinVar search HTTP ${searchResp.status}`);
+        const searchData = await searchResp.json();
         const ids = searchData.esearchresult?.idlist || [];
         if (!ids.length) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
 
-        const summaryData = await (await fetch(
+        const summaryResp = await fetch(
             `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=${ids[0]}&retmode=json`
-        )).json();
+        );
+        if (!summaryResp.ok) throw new Error(`ClinVar summary HTTP ${summaryResp.status}`);
+        const summaryData = await summaryResp.json();
         const variant = summaryData.result?.[ids[0]];
         if (!variant) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
 
