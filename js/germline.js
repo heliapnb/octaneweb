@@ -76,11 +76,11 @@ function parseVariants(input) {
     if (!input || !input.trim()) return [];
     return input.split(',').map(v => {
         v = v.trim();
-        const match = v.match(/^([A-Za-z0-9]+)\s+(c\..+)$/i);
+        const match = v.match(/^([A-Za-z0-9]+)(?:\s+(c\..+))?$/i);
         if (!match) return null;
         return {
             gene: match[1].toUpperCase(),
-            coding: match[2].trim(),
+            coding: match[2]?.trim() || '',
             clinvarDone: false,
             clinvarClass: null,
             clinvarSignificance: null,
@@ -102,6 +102,11 @@ async function lookupAllVariants() {
     const states = parseVariants(input);
     if (!states.length) {
         alert('Please enter at least one variant in the format: GENE c.xxxxx');
+        return;
+    }
+    const missingCoding = states.filter(s => !s.coding).map(s => s.gene);
+    if (missingCoding.length) {
+        alert(`ClinVar lookup requires a cDNA change for each variant.\nMissing cDNA for: ${missingCoding.join(', ')}\n\nUse "Skip" to check gene recommendations without a specific variant.`);
         return;
     }
     window.variantStates = states;
