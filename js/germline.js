@@ -446,29 +446,33 @@ function updateResultsPanel() {
     if (empty) empty.classList.add('hidden');
     content.classList.remove('hidden');
 
-    // Table rows
+    // Table rows — recommendation cell includes badge + rationale + refs stacked
     const rows = pairs.map(({ state, result }) => {
         const { gene, coding, clinvarClass } = state;
-        const recCell = !result
-            ? `<span class="px-2 py-1 bg-slate-100 text-slate-400 rounded text-xs font-black">Loading</span>`
-            : result.pending
-            ? `<span class="px-2 py-1 bg-slate-100 text-slate-500 rounded text-xs font-black">Pending</span>`
-            : `<span class="px-2 py-1 rounded text-xs font-black ${recBadgeClass(result.color)}">${result.rec}</span>`;
 
         const cvCell = clinvarClass
             ? `<span class="px-2 py-1 rounded-full text-xs font-black ${getClassColor(clinvarClass)}">${clinvarClass}</span>`
             : `<span class="text-xs text-slate-400">—</span>`;
 
-        const refCell = (result && !result.pending && result.refs?.length)
-            ? result.refs.map(r => `<a href="${r.url}" target="_blank" class="text-blue-600 hover:underline text-xs">${r.text}</a>`).join('<br>')
-            : '—';
+        let recCell;
+        if (!result) {
+            recCell = `<span class="px-2 py-1 bg-slate-100 text-slate-400 rounded text-xs font-black">Loading</span>`;
+        } else if (result.pending) {
+            recCell = `<span class="px-2 py-1 bg-slate-100 text-slate-500 rounded text-xs font-black">Pending</span>`;
+        } else {
+            const badge = `<span class="px-2 py-1 rounded text-xs font-black ${recBadgeClass(result.color)}">${result.rec}</span>`;
+            const rationale = result.rationale
+                ? `<p class="text-xs text-slate-500 mt-2 leading-relaxed">${result.rationale}</p>` : '';
+            const refs = result.refs?.length
+                ? `<div class="flex flex-wrap gap-1 mt-2">${result.refs.map(r => `<a href="${r.url}" target="_blank" class="inline-block px-2 py-0.5 bg-slate-50 border border-slate-200 rounded text-[10px] font-bold text-blue-600 hover:underline">${r.text}</a>`).join('')}</div>` : '';
+            recCell = badge + rationale + refs;
+        }
 
-        return `<tr class="border-b border-slate-100 hover:bg-slate-50">
-            <td class="px-4 py-3 font-mono font-black text-sm text-slate-800 whitespace-nowrap">${gene}</td>
-            <td class="px-4 py-3 font-mono text-sm text-slate-600 whitespace-nowrap">${coding}</td>
-            <td class="px-4 py-3">${cvCell}</td>
-            <td class="px-4 py-3">${recCell}</td>
-            <td class="px-4 py-3">${refCell}</td>
+        return `<tr class="border-b border-slate-100 hover:bg-slate-50 align-top">
+            <td class="px-4 py-4 font-mono font-black text-sm text-slate-800 whitespace-nowrap">${gene}</td>
+            <td class="px-4 py-4 font-mono text-sm text-slate-600 whitespace-nowrap">${coding}</td>
+            <td class="px-4 py-4">${cvCell}</td>
+            <td class="px-4 py-4">${recCell}</td>
         </tr>`;
     }).join('');
 
@@ -498,7 +502,15 @@ function updateResultsPanel() {
         overallBody = 'None of the identified variants meet criteria for germline confirmation.';
     }
 
-    // Deduplicated references from all resolved results
+    // Per-gene rationale sentences for the overall recommendation
+    const rationaleLines = resolved
+        .filter(p => p.result.rationale)
+        .map(p => `<li><span class="font-black">${p.state.gene}:</span> ${p.result.rationale}</li>`)
+        .join('');
+    const overallRationale = rationaleLines
+        ? `<ul class="mt-4 text-left space-y-2 text-sm text-${overallColor}-800 opacity-90 list-none">${rationaleLines}</ul>` : '';
+
+    // Deduplicated references
     const seenRefs = new Set();
     const allRefs = [];
     resolved.forEach(p => (p.result.refs || []).forEach(r => { if (!seenRefs.has(r.text)) { seenRefs.add(r.text); allRefs.push(r); } }));
@@ -517,18 +529,20 @@ function updateResultsPanel() {
                                 <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gene</th>
                                 <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">cDNA</th>
                                 <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">ClinVar</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Recommendation</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">References</th>
+                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Recommendation &amp; Rationale</th>
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
                     </table>
                 </div>
             </div>
-            <div class="bg-${overallColor}-50 border-4 border-${overallColor}-500 rounded-3xl p-8 text-center animate-fade-in">
-                <i class="fas ${overallIcon} fa-3x text-${overallColor}-600 mb-4"></i>
-                <h3 class="text-2xl font-black text-${overallColor}-900 uppercase">${overallTitle}</h3>
-                <p class="text-${overallColor}-700 mt-2 font-semibold text-sm">${overallBody}</p>
+            <div class="bg-${overallColor}-50 border-4 border-${overallColor}-500 rounded-3xl p-8 animate-fade-in">
+                <div class="text-center">
+                    <i class="fas ${overallIcon} fa-3x text-${overallColor}-600 mb-4"></i>
+                    <h3 class="text-2xl font-black text-${overallColor}-900 uppercase">${overallTitle}</h3>
+                    <p class="text-${overallColor}-700 mt-2 font-semibold text-sm">${overallBody}</p>
+                </div>
+                ${overallRationale}
                 ${refButtons ? `<div class="mt-4 flex flex-wrap gap-2 justify-center">${refButtons}</div>` : ''}
             </div>
         </div>`;
