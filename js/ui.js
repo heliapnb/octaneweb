@@ -389,7 +389,7 @@ function updateResultsPanel() {
         const { gene, coding, clinvarClass } = state;
 
         const cvCell = clinvarClass
-            ? `<span class="o-cv-pill ${getClassColor(clinvarClass)}">${clinvarClass}</span>`
+            ? `<span class="o-cv-pill ${getClassColor(clinvarClass)}" title="${clinvarClass}">${abbreviateClinvar(clinvarClass)}</span>`
             : `<span style="color:var(--mute-light); font-style:italic;">—</span>`;
 
         let recCell;
@@ -517,6 +517,24 @@ function getClassColor(classification) {
     if (cls.includes('benign') && !cls.includes('likely')) return 'cv-benign';
     if (cls.includes('conflicting')) return 'cv-conflicting';
     return 'cv-unknown';
+}
+
+// Map a ClinVar classification to a compact clinical abbreviation
+// (P, LP, P/LP, VUS, LB, B, B/LB, Conflicting). Used in the summary
+// table cell where space is tight; the full text stays in the variant
+// card and appears on hover via the title attribute.
+function abbreviateClinvar(cls) {
+    if (!cls) return '';
+    const c = cls.toLowerCase().trim();
+    if (c.includes('pathogenic') && c.includes('likely pathogenic')) return 'P/LP';
+    if (c.includes('benign') && c.includes('likely benign')) return 'B/LB';
+    if (c === 'pathogenic') return 'P';
+    if (c === 'likely pathogenic') return 'LP';
+    if (c === 'likely benign') return 'LB';
+    if (c === 'benign') return 'B';
+    if (c.includes('uncertain') || c.includes('vus')) return 'VUS';
+    if (c.includes('conflicting')) return 'Conflicting';
+    return cls;
 }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────

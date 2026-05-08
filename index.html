@@ -814,14 +814,17 @@
       color: var(--ink);
       overflow-wrap: anywhere;
     }
-    /* ClinVar pill inside the table — allow wrap and tighten the styling
-       so two-word classifications like "Pathogenic/Likely pathogenic" fit */
+    /* ClinVar pill inside the table — abbreviation form + cell-bounded width
+       so multi-word classifications can never overflow into the next column */
     .o-table .o-cv-pill {
-      white-space: normal;
       display: inline-block;
+      max-width: 100%;
+      box-sizing: border-box;
+      white-space: normal;
+      overflow-wrap: anywhere;
       line-height: 1.45;
-      font-size: 9px;
-      padding: 3px 8px;
+      font-size: 10px;
+      padding: 3px 9px;
       letter-spacing: 0.06em;
     }
     .o-table .rationale {
