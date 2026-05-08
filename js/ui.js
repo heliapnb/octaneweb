@@ -522,3 +522,14 @@ function getClassColor(classification) {
 // ─── INIT ────────────────────────────────────────────────────────────────────
 
 initVariantInput();
+
+// Populate today's date for the print-only date line
+(function setPrintDate() {
+    const el = document.getElementById('printDate');
+    if (!el) return;
+    const now = new Date();
+    const formatted = now.toLocaleDateString(undefined, {
+        year: 'numeric', month: 'long', day: 'numeric'
+    });
+    el.textContent = `Generated ${formatted}`;
+})();

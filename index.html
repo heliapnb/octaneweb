@@ -107,6 +107,13 @@
       color: white;
       border-color: var(--ink);
     }
+    .o-print-date {
+      display: none;
+      font-family: var(--font-display);
+      font-size: 13px;
+      color: var(--ink-soft);
+      font-style: italic;
+    }
     @media (max-width: 600px) {
       .o-header { flex-wrap: wrap; }
       .o-header-right { width: 100%; justify-content: space-between; }
@@ -968,6 +975,7 @@
         border-bottom: 2px solid var(--ink);
       }
       .o-tagline { display: block !important; }
+      .o-print-date { display: block !important; }
 
       .o-main {
         max-width: 100%;
@@ -1009,6 +1017,7 @@
   </a>
   <div class="o-header-right">
     <div class="o-tagline">Hereditary Cancer · HCT</div>
+    <div class="o-print-date" id="printDate"></div>
     <button onclick="window.print()" class="o-print-btn" title="Save the current results as a PDF">Save as PDF</button>
   </div>
 </header>
