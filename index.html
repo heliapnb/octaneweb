@@ -85,6 +85,34 @@
       letter-spacing: 0.04em;
       text-align: right;
     }
+    .o-header-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .o-print-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--ink-soft);
+      padding: 8px 16px;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .o-print-btn:hover {
+      background: var(--ink);
+      color: white;
+      border-color: var(--ink);
+    }
+    @media (max-width: 600px) {
+      .o-header { flex-wrap: wrap; }
+      .o-header-right { width: 100%; justify-content: space-between; }
+    }
 
     /* ─── Tabs ─────────────────────────────────────────────── */
     .o-tabs {
@@ -906,6 +934,73 @@
       from { opacity: 0; transform: translateY(4px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ─── Print styles (Save as PDF) ───────────────────────── */
+    @media print {
+      @page { margin: 0.5in; }
+
+      body {
+        background: white !important;
+        color: black !important;
+        font-size: 10pt;
+      }
+
+      /* Hide global chrome and interactive elements */
+      .o-tabs,
+      .o-print-btn,
+      .o-input-row,
+      #searchResults,
+      .o-reset,
+      .o-q,
+      #sec-eligibility > .o-lbl,
+      #sec-germline .o-lbl,
+      #sec-germline .o-hint,
+      #gVariantRows,
+      .o-add-btn,
+      .o-btn-row,
+      #gVariantCards,
+      #gEmptyState,
+      .o-vrow-remove {
+        display: none !important;
+      }
+
+      /* Header tightened, keeps brand */
+      .o-header {
+        padding: 0 0 12px;
+        border-bottom: 2px solid var(--ink);
+      }
+      .o-tagline { display: block !important; }
+
+      .o-main {
+        max-width: 100%;
+        padding: 16px 0 0;
+      }
+
+      /* Stack germline grid for print */
+      .o-germline-grid {
+        display: block !important;
+        gap: 0 !important;
+      }
+      .o-germline-grid > div:last-child {
+        position: static !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+
+      /* Avoid awkward page breaks */
+      .o-banner, .o-verdict, .o-vcard, .o-table tr {
+        page-break-inside: avoid;
+      }
+
+      /* Force colored backgrounds (badges, banners) to actually print */
+      .o-cv-pill, .o-td-badge, .o-banner-badge, .o-verdict-badge,
+      .o-vcard-head, .o-table th, .o-table-title,
+      .o-banner.is-success, .o-banner.is-danger, .o-banner.is-warn, .o-banner.is-pending,
+      .o-verdict.is-success, .o-verdict.is-danger {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
   </style>
 </head>
 <body>
@@ -915,7 +1010,10 @@
     <h1 class="o-name">Octane</h1>
     <div class="o-sub">Clinical Decision Support</div>
   </div>
-  <div class="o-tagline">Hereditary Cancer · HCT</div>
+  <div class="o-header-right">
+    <div class="o-tagline">Hereditary Cancer · HCT</div>
+    <button onclick="window.print()" class="o-print-btn" title="Save the current results as a PDF">Save as PDF</button>
+  </div>
 </header>
 
 <nav class="o-tabs">
