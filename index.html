@@ -767,9 +767,15 @@
     }
     .o-table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       font-family: var(--font-body);
     }
+    /* Column widths so long ClinVar classifications wrap instead of forcing horizontal scroll */
+    .o-table th:nth-child(1), .o-table td:nth-child(1) { width: 13%; }
+    .o-table th:nth-child(2), .o-table td:nth-child(2) { width: 22%; }
+    .o-table th:nth-child(3), .o-table td:nth-child(3) { width: 18%; }
+    .o-table th:nth-child(4), .o-table td:nth-child(4) { width: 47%; }
     .o-table th {
       font-family: var(--font-display);
       font-size: 11px;
@@ -781,7 +787,6 @@
       text-align: left;
       background: var(--bg-soft);
       border-bottom: 1px solid var(--border-soft);
-      white-space: nowrap;
     }
     .o-table td {
       padding: 14px 16px;
@@ -790,6 +795,8 @@
       font-size: 13px;
       color: var(--ink-soft);
       line-height: 1.55;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
     .o-table tr:last-child td { border-bottom: none; }
     .o-table .gene {
@@ -805,7 +812,17 @@
       font-size: 13px;
       font-weight: 500;
       color: var(--ink);
-      white-space: nowrap;
+      overflow-wrap: anywhere;
+    }
+    /* ClinVar pill inside the table — allow wrap and tighten the styling
+       so two-word classifications like "Pathogenic/Likely pathogenic" fit */
+    .o-table .o-cv-pill {
+      white-space: normal;
+      display: inline-block;
+      line-height: 1.45;
+      font-size: 9px;
+      padding: 3px 8px;
+      letter-spacing: 0.06em;
     }
     .o-table .rationale {
       font-family: var(--font-body);
