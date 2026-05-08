@@ -7,7 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
   <style>
@@ -34,7 +34,7 @@
 
       --font-display: 'Cormorant Garamond', 'Times New Roman', serif;
       --font-body: 'Lora', Georgia, serif;
-      --font-mono: 'IBM Plex Mono', 'SF Mono', Menlo, Consolas, monospace;
+      --font-mono: 'DM Mono', 'SF Mono', Menlo, Consolas, monospace;
       --font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
     }
 
@@ -153,8 +153,13 @@
       font-size: 12px;
       font-weight: 500;
       color: var(--ink-soft);
-      background: var(--bg-softer);
-      padding: 1px 6px;
+    }
+    .o-hint .gene {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--ink-soft);
     }
 
     .o-input-row {
@@ -891,7 +896,7 @@
       <!-- Left: Input + per-variant cards -->
       <div>
         <div class="o-lbl">Tumour Variant(s)</div>
-        <p class="o-hint">One or more variants separated by commas. Example: <span class="mono">BRCA1 c.5266dupC, CHEK2 c.524dup</span></p>
+        <p class="o-hint">One or more variants separated by commas. Example: <span class="gene">BRCA1</span> <span class="mono">c.5266dupC</span>, <span class="gene">CHEK2</span> <span class="mono">c.524dup</span></p>
         <textarea id="gVariantInput" rows="2" class="o-textarea" placeholder="GENE c.xxxxx, GENE c.xxxxx, …"></textarea>
         <div class="o-btn-row">
           <button onclick="lookupAllVariants()" class="o-btn">Look Up in ClinVar</button>
