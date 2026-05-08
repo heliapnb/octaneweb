@@ -982,20 +982,37 @@
         padding: 16px 0 0;
       }
 
-      /* Stack germline grid for print */
+      /* Flatten germline grid for print — force every wrapper to flow
+         normally so nothing inside (especially the recommendation banner)
+         gets clipped by sticky/overflow constraints carried over from
+         the screen layout */
       .o-germline-grid {
         display: block !important;
+        grid-template-columns: none !important;
         gap: 0 !important;
       }
-      .o-germline-grid > div:last-child {
+      .o-germline-grid > div,
+      #gOutput,
+      #gResultContent,
+      .o-result-stack {
+        display: block !important;
         position: static !important;
         max-height: none !important;
+        height: auto !important;
         overflow: visible !important;
+        width: 100% !important;
       }
 
-      /* Avoid awkward page breaks */
-      .o-banner, .o-verdict, .o-vcard, .o-table tr {
+      /* Page-break hints — keep small things together but let the
+         banner flow naturally across pages if its rationale is long */
+      .o-verdict, .o-vcard, .o-table tr {
         page-break-inside: avoid;
+      }
+      .o-banner-head {
+        page-break-after: avoid;
+      }
+      .o-banner {
+        page-break-before: auto;
       }
 
       /* Force colored backgrounds (badges, banners) to actually print */
