@@ -78,13 +78,73 @@ function resetEligibility() {
 
 // ─── GERMLINE UI ─────────────────────────────────────────────────────────────
 
+// ── Variant input rows ──
+
+function buildVariantRowHtml() {
+    return `
+        <div class="o-vrow" data-vrow>
+            <input type="text" class="o-vrow-input gene-field" placeholder="GENE" data-gene autocomplete="off">
+            <input type="text" class="o-vrow-input cdna-field" placeholder="c.xxxxx" data-coding autocomplete="off">
+            <button class="o-vrow-remove" onclick="removeVariantRow(this)" title="Remove variant" aria-label="Remove variant">×</button>
+        </div>`;
+}
+
+function addVariantRow() {
+    const c = document.getElementById('gVariantRows');
+    if (!c) return;
+    c.insertAdjacentHTML('beforeend', buildVariantRowHtml());
+    updateRowRemoveButtons();
+    const lastRow = c.lastElementChild;
+    if (lastRow) lastRow.querySelector('[data-gene]').focus();
+}
+
+function removeVariantRow(btn) {
+    const c = document.getElementById('gVariantRows');
+    if (!c) return;
+    const rows = c.querySelectorAll('[data-vrow]');
+    if (rows.length <= 1) return;
+    btn.closest('[data-vrow]').remove();
+    updateRowRemoveButtons();
+}
+
+function updateRowRemoveButtons() {
+    const c = document.getElementById('gVariantRows');
+    if (!c) return;
+    const rows = c.querySelectorAll('[data-vrow]');
+    rows.forEach(row => {
+        const btn = row.querySelector('.o-vrow-remove');
+        if (btn) btn.disabled = rows.length <= 1;
+    });
+}
+
+function readVariantInputs() {
+    const c = document.getElementById('gVariantRows');
+    if (!c) return [];
+    const rows = c.querySelectorAll('[data-vrow]');
+    return Array.from(rows).map(row => ({
+        gene:   row.querySelector('[data-gene]').value.trim().toUpperCase(),
+        coding: row.querySelector('[data-coding]').value.trim()
+    })).filter(r => r.gene || r.coding);
+}
+
+function initVariantInput() {
+    const c = document.getElementById('gVariantRows');
+    if (!c) return;
+    if (!c.querySelector('[data-vrow]')) {
+        c.innerHTML = buildVariantRowHtml();
+    }
+    updateRowRemoveButtons();
+}
+
+// ── Lookup orchestration ──
+
 async function lookupAllVariants() {
-    const input = document.getElementById('gVariantInput')?.value || '';
-    const states = parseVariants(input);
-    if (!states.length) {
-        alert('Please enter at least one variant in the format: GENE c.xxxxx');
+    const inputs = readVariantInputs();
+    if (!inputs.length || !inputs.some(i => i.gene)) {
+        alert('Please enter at least one variant.');
         return;
     }
+    const states = inputs.filter(i => i.gene).map(i => createVariantState(i.gene, i.coding));
     const missingCoding = states.filter(s => !s.coding).map(s => s.gene);
     if (missingCoding.length) {
         alert(`ClinVar lookup requires a cDNA change for each variant.\nMissing cDNA for: ${missingCoding.join(', ')}\n\nUse "Skip" to check gene recommendations without a specific variant.`);
@@ -103,13 +163,17 @@ async function lookupAllVariants() {
 }
 
 function bypassAllVariants() {
-    const input = document.getElementById('gVariantInput')?.value || '';
-    const states = parseVariants(input);
-    if (!states.length) {
-        alert('Please enter at least one variant in the format: GENE c.xxxxx');
+    const inputs = readVariantInputs();
+    if (!inputs.length || !inputs.some(i => i.gene)) {
+        alert('Please enter at least one variant.');
         return;
     }
-    states.forEach(s => { s.clinvarDone = false; s.plpConfirmed = true; });
+    const states = inputs.filter(i => i.gene).map(i => {
+        const s = createVariantState(i.gene, i.coding);
+        s.clinvarDone = false;
+        s.plpConfirmed = true;
+        return s;
+    });
     window.variantStates = states;
     document.getElementById('gVariantCards').classList.remove('hidden');
     renderVariantCards();
@@ -433,3 +497,7 @@ function getClassColor(classification) {
     if (cls.includes('conflicting')) return 'cv-conflicting';
     return 'cv-unknown';
 }
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+
+initVariantInput();

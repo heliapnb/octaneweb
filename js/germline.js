@@ -66,26 +66,30 @@ window.variantStates = [];
 
 // --- GERMLINE LOGIC (pure, no DOM) ---
 
+function createVariantState(gene, coding) {
+    return {
+        gene: (gene || '').toUpperCase(),
+        coding: (coding || '').trim(),
+        clinvarDone: false,
+        clinvarClass: null,
+        clinvarSignificance: null,
+        clinvarId: null,
+        clinvarTotal: 0,
+        clinvarSummary: '',
+        plpConfirmed: null,   // true | false | null
+        contextAnswer: null,  // 'yes' | 'no' | null
+        ageInput: '',
+        multiVariant: false,
+    };
+}
+
 function parseVariants(input) {
     if (!input || !input.trim()) return [];
     return input.split(',').map(v => {
         v = v.trim();
         const match = v.match(/^([A-Za-z0-9]+)(?:\s+(c\..+))?$/i);
         if (!match) return null;
-        return {
-            gene: match[1].toUpperCase(),
-            coding: match[2]?.trim() || '',
-            clinvarDone: false,
-            clinvarClass: null,
-            clinvarSignificance: null,
-            clinvarId: null,
-            clinvarTotal: 0,
-            clinvarSummary: '',
-            plpConfirmed: null,   // true | false | null
-            contextAnswer: null,  // 'yes' | 'no' | null
-            ageInput: '',
-            multiVariant: false,
-        };
+        return createVariantState(match[1], match[2]);
     }).filter(Boolean);
 }
 

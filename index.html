@@ -184,24 +184,80 @@
       font-style: italic;
     }
 
-    .o-textarea {
-      display: block;
-      width: 100%;
-      font-family: var(--font-mono);
+    /* ─── Variant input rows ───────────────────────────────── */
+    .o-vrow {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: stretch;
+    }
+    .o-vrow-input {
+      padding: 11px 14px;
+      font-family: var(--font-body);
       font-size: 14px;
-      font-weight: 500;
       color: var(--ink);
       background: var(--bg-card);
       border: 1px solid var(--border);
-      padding: 12px 14px;
-      resize: vertical;
-      min-height: 70px;
       outline: none;
       transition: border-color 0.15s;
-      line-height: 1.6;
+      min-width: 0;
     }
-    .o-textarea:focus { border-color: var(--ink); }
-    .o-textarea::placeholder { color: var(--mute-light); }
+    .o-vrow-input:focus { border-color: var(--ink); }
+    .o-vrow-input::placeholder {
+      color: var(--mute-light);
+      font-style: italic;
+    }
+    .o-vrow-input.gene-field {
+      flex: 0 0 130px;
+      font-style: italic;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .o-vrow-input.cdna-field {
+      flex: 1;
+      font-family: var(--font-mono);
+    }
+    .o-vrow-remove {
+      flex: 0 0 auto;
+      width: 42px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--mute-light);
+      font-family: var(--font-body);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .o-vrow-remove:hover:not([disabled]) {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+    .o-vrow-remove[disabled] {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
+    .o-add-btn {
+      display: block;
+      width: 100%;
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--mute);
+      padding: 10px 16px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-style: italic;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 4px;
+    }
+    .o-add-btn:hover {
+      border-color: var(--ink);
+      color: var(--ink);
+      background: var(--bg-card);
+    }
 
     /* ─── Buttons ──────────────────────────────────────────── */
     .o-btn {
@@ -893,8 +949,9 @@
       <!-- Left: Input + per-variant cards -->
       <div>
         <div class="o-lbl">Tumour Variant(s)</div>
-        <p class="o-hint">One or more variants separated by commas. Example: <span class="gene">BRCA1</span> <span class="mono">c.5266dupC</span>, <span class="gene">CHEK2</span> <span class="mono">c.524dup</span></p>
-        <textarea id="gVariantInput" rows="2" class="o-textarea" placeholder="GENE c.xxxxx, GENE c.xxxxx, …"></textarea>
+        <p class="o-hint">Enter the gene name and the cDNA notation for each variant. Example: <span class="gene">BRCA1</span> <span class="mono">c.5266dupC</span></p>
+        <div id="gVariantRows"></div>
+        <button onclick="addVariantRow()" class="o-add-btn">+ Add another variant</button>
         <div class="o-btn-row">
           <button onclick="lookupAllVariants()" class="o-btn">Look Up in ClinVar</button>
           <button onclick="bypassAllVariants()" class="o-btn o-btn-secondary">Skip — Genes Only</button>
