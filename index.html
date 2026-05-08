@@ -61,21 +61,19 @@
       justify-content: space-between;
       gap: 16px;
     }
-    .o-name {
-      font-family: var(--font-display);
-      font-size: 28px;
-      font-weight: 600;
-      color: var(--ink);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      line-height: 1;
+    .o-brand {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
     }
-    .o-sub {
-      font-family: var(--font-body);
-      font-size: 11px;
-      color: var(--mute-light);
-      font-style: italic;
-      margin-top: 4px;
+    .o-logo {
+      display: block;
+      height: 56px;
+      width: auto;
+      max-width: 100%;
+    }
+    @media (max-width: 600px) {
+      .o-logo { height: 42px; }
     }
     .o-tagline {
       font-family: var(--font-display);
@@ -1006,10 +1004,9 @@
 <body>
 
 <header class="o-header">
-  <div>
-    <h1 class="o-name">Octane</h1>
-    <div class="o-sub">Clinical Decision Support</div>
-  </div>
+  <a href="" class="o-brand" aria-label="OCTANE — Ontario-wide Targeted Nucleic Acid Evaluation">
+    <img src="resources/octane-logo.png" alt="OCTANE — Ontario-wide Targeted Nucleic Acid Evaluation" class="o-logo">
+  </a>
   <div class="o-header-right">
     <div class="o-tagline">Hereditary Cancer · HCT</div>
     <button onclick="window.print()" class="o-print-btn" title="Save the current results as a PDF">Save as PDF</button>
