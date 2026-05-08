@@ -84,9 +84,31 @@ function buildVariantRowHtml() {
     return `
         <div class="o-vrow" data-vrow>
             <input type="text" class="o-vrow-input gene-field" placeholder="GENE" data-gene autocomplete="off">
-            <input type="text" class="o-vrow-input cdna-field" placeholder="c.xxxxx" data-coding autocomplete="off">
+            <input type="text" class="o-vrow-input cdna-field" placeholder="c.xxxxx" data-coding oninput="normalizeCDNAInput(this)" autocomplete="off">
             <button class="o-vrow-remove" onclick="removeVariantRow(this)" title="Remove variant" aria-label="Remove variant">×</button>
         </div>`;
+}
+
+// Normalize cDNA notation to ClinVar's expected case:
+// - lowercase everywhere by default (so "c." prefix and operators
+//   like "dup", "del", "ins" stay lowercase)
+// - uppercase the A/C/G/T nucleotides that flank ">" or follow an operator
+function normalizeCDNA(s) {
+    if (!s) return s;
+    let result = s.toLowerCase();
+    result = result.replace(/([acgt]+)>([acgt]+)/g, (_, a, b) => a.toUpperCase() + '>' + b.toUpperCase());
+    result = result.replace(/(delins|dup|del|ins|inv)([acgt]+)/g, (_, op, nt) => op + nt.toUpperCase());
+    return result;
+}
+
+function normalizeCDNAInput(input) {
+    const pos = input.selectionStart;
+    const oldVal = input.value;
+    const newVal = normalizeCDNA(oldVal);
+    if (newVal !== oldVal) {
+        input.value = newVal;
+        input.setSelectionRange(pos, pos);
+    }
 }
 
 function addVariantRow() {
@@ -123,7 +145,7 @@ function readVariantInputs() {
     const rows = c.querySelectorAll('[data-vrow]');
     return Array.from(rows).map(row => ({
         gene:   row.querySelector('[data-gene]').value.trim().toUpperCase(),
-        coding: row.querySelector('[data-coding]').value.trim()
+        coding: normalizeCDNA(row.querySelector('[data-coding]').value.trim())
     })).filter(r => r.gene || r.coding);
 }
 
