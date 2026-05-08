@@ -314,7 +314,7 @@ function updateResultsPanel() {
             recCell = `<span class="o-td-badge is-mute">Pending</span>`;
         } else {
             const badge = `<span class="o-td-badge ${recBadgeClass(result.color)}">${result.rec}</span>`;
-            const rationale = result.rationale ? `<div class="rationale">${result.rationale}</div>` : '';
+            const rationale = result.rationale ? `<div class="rationale">${italicizeGenes(result.rationale)}</div>` : '';
             const refs = result.refs?.length
                 ? `<div class="refs">${result.refs.map(r => `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`).join('')}</div>`
                 : '';
@@ -358,7 +358,7 @@ function updateResultsPanel() {
     // ── Per-gene rationale list ──
     const rationaleLines = resolved
         .filter(p => p.result.rationale)
-        .map(p => `<li><span class="gene">${p.state.gene}:</span> ${p.result.rationale}</li>`)
+        .map(p => `<li><span class="gene">${p.state.gene}:</span> ${italicizeGenes(p.result.rationale)}</li>`)
         .join('');
     const overallRationale = rationaleLines
         ? `<ul class="o-banner-rationale">${rationaleLines}</ul>` : '';
@@ -401,6 +401,17 @@ function updateResultsPanel() {
 }
 
 // ─── UI HELPERS ──────────────────────────────────────────────────────────────
+
+// Wrap any gene name (from the canonical allGenes list) in <i> tags,
+// matched as whole words so partial substrings like "T790M" aren't touched.
+const _genePattern = new RegExp(
+    '\\b(' + allGenes.slice().sort((a, b) => b.length - a.length).join('|') + ')\\b',
+    'g'
+);
+function italicizeGenes(text) {
+    if (!text) return text;
+    return text.replace(_genePattern, '<i>$1</i>');
+}
 
 function recBadgeClass(color) {
     const map = {
