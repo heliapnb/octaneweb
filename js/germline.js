@@ -66,6 +66,20 @@ window.variantStates = [];
 
 // --- GERMLINE LOGIC (pure, no DOM) ---
 
+// NCBI E-utilities rate limit is 3 requests/sec without an API key.
+// Throttle every call so consecutive requests are at least 400ms apart
+// — this prevents the rate limiter from silently returning empty results
+// for the second variant onward in a multi-variant lookup.
+let _lastNcbiRequest = 0;
+const NCBI_MIN_INTERVAL = 400;
+async function ncbiFetch(url) {
+    const now = Date.now();
+    const wait = Math.max(0, _lastNcbiRequest + NCBI_MIN_INTERVAL - now);
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    _lastNcbiRequest = Date.now();
+    return fetch(url);
+}
+
 function createVariantState(gene, coding) {
     return {
         gene: (gene || '').toUpperCase(),
@@ -98,13 +112,13 @@ async function lookupSingleVariant(state) {
     try {
         const searchTerm = encodeURIComponent(`${gene}[gene] ${coding}`);
         const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=clinvar&term=${searchTerm}&retmode=json&retmax=5`;
-        const searchResp = await fetch(searchUrl);
+        const searchResp = await ncbiFetch(searchUrl);
         if (!searchResp.ok) throw new Error(`ClinVar search HTTP ${searchResp.status}`);
         const searchData = await searchResp.json();
         const ids = searchData.esearchresult?.idlist || [];
         if (!ids.length) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
 
-        const summaryResp = await fetch(
+        const summaryResp = await ncbiFetch(
             `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=${ids[0]}&retmode=json`
         );
         if (!summaryResp.ok) throw new Error(`ClinVar summary HTTP ${summaryResp.status}`);

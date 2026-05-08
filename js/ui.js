@@ -155,7 +155,6 @@ async function lookupAllVariants() {
     resetRightPanel();
     renderVariantCards();
     for (let i = 0; i < states.length; i++) {
-        if (i > 0) await new Promise(r => setTimeout(r, 700)); // stay within NCBI rate limit
         await lookupSingleVariant(states[i]);
         renderVariantCards();
         updateResultsPanel();
