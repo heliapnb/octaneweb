@@ -93,7 +93,6 @@ function createVariantState(gene, coding) {
         plpConfirmed: null,   // true | false | null
         contextAnswer: null,  // 'yes' | 'no' | null
         ageInput: '',
-        multiVariant: false,
     };
 }
 
@@ -162,7 +161,7 @@ function classifySignificance(overallClass) {
 }
 
 function computeRecommendationForVariant(state) {
-    const { gene, coding, plpConfirmed, contextAnswer, ageInput, multiVariant } = state;
+    const { gene, coding, plpConfirmed, contextAnswer, ageInput } = state;
 
     if (plpConfirmed === null) return null;
 
@@ -203,16 +202,14 @@ function computeRecommendationForVariant(state) {
 
     if (gene === 'APC') {
         if (coding.includes('c.3920T>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known APC founder variant (c.3920T>A).', rationale: 'APC c.3920T>A is a known germline founder mutation.', refs: [REFS.klek, REFS.kuzbari], pending: false };
-        if (multiVariant) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: '2 or more P/LP variants in APC.', rationale: 'Biallelic P/LP findings substantially increase germline probability over the 1.1% baseline GCR.', refs: [REFS.amp, REFS.kuzbari], pending: false };
         if (ageUnder30) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Tumour diagnosed at ≤30 years.', rationale: 'ESMO 2022 recommends germline confirmation for APC variants in patients diagnosed at or below 30 years.', refs: [REFS.kuzbari], pending: false };
-        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'APC variant does not meet criteria.', rationale: 'APC has only 1.1% overall GCR. Confirmation is reserved for c.3920T>A, biallelic findings, or diagnosis ≤30y.', refs: [REFS.kuzbari, REFS.klek], pending: false };
+        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'APC variant does not meet criteria.', rationale: 'APC has only 1.1% overall GCR. Confirmation is reserved for c.3920T>A or diagnosis ≤30y.', refs: [REFS.kuzbari, REFS.klek], pending: false };
         return { pending: true };
     }
 
     if (gene === 'TP53') {
         if (coding.includes('c.1010G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TP53 founder variant (c.1010G>A).', rationale: 'TP53 c.1010G>A is a known germline founder mutation.', refs: [REFS.klek, REFS.kuzbari], pending: false };
-        if (multiVariant) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: '2 or more P/LP variants in TP53.', rationale: 'Multiple P/LP findings in TP53 are indicative of germline origin.', refs: [REFS.amp, REFS.kuzbari], pending: false };
-        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'TP53 variant does not meet criteria.', rationale: 'TP53 has only 0.9% overall GCR. Confirmation is reserved for c.1010G>A or biallelic findings.', refs: [REFS.kuzbari, REFS.klek], pending: false };
+        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'TP53 variant does not meet criteria.', rationale: 'TP53 has only 0.9% overall GCR. Confirmation is reserved for the c.1010G>A founder variant.', refs: [REFS.kuzbari, REFS.klek], pending: false };
     }
 
     if (gene === 'HOXB13' && coding.includes('c.251G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known HOXB13 founder variant (c.251G>A).', rationale: 'HOXB13 c.251G>A is a known founder germline variant associated with hereditary prostate cancer.', refs: [REFS.klek, REFS.clark], pending: false };

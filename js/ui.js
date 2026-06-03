@@ -220,11 +220,6 @@ function setVariantAge(idx, age) {
     updateResultsPanel();
 }
 
-function setVariantMultiVariant(idx, checked) {
-    window.variantStates[idx].multiVariant = checked;
-    updateResultsPanel();
-}
-
 // ─── CARD RENDERING ──────────────────────────────────────────────────────────
 
 function renderVariantCards() {
@@ -293,8 +288,8 @@ function renderVariantCard(state, idx) {
 }
 
 function renderVariantContextSection(state, idx) {
-    const { gene, coding, contextAnswer, ageInput, multiVariant } = state;
-    const founderAPC = 'c.3920T>A', founderTP53 = 'c.1010G>A';
+    const { gene, coding, contextAnswer, ageInput } = state;
+    const founderAPC = 'c.3920T>A';
 
     if (gene === 'VHL') {
         return renderInlineYesNo(idx, 'Is the tumour Renal Cell Carcinoma?', ['Renal Cell Carcinoma'], contextAnswer);
@@ -305,24 +300,9 @@ function renderVariantContextSection(state, idx) {
     if (gene === 'APC' && !coding.includes(founderAPC)) {
         return `
             <div class="o-vcard-section">
-                <label class="o-cb-row">
-                    <input type="checkbox" ${multiVariant ? 'checked' : ''} onchange="setVariantMultiVariant(${idx}, this.checked)">
-                    <span>2 or more reported P/LP variants in APC</span>
-                </label>
-                <div style="margin-top:10px;">
-                    <div class="o-qtitle">Age at diagnosis</div>
-                    <input type="number" value="${ageInput}" placeholder="e.g. 28" min="1" max="120"
-                        oninput="setVariantAge(${idx}, this.value)" class="o-age-input">
-                </div>
-            </div>`;
-    }
-    if (gene === 'TP53' && !coding.includes(founderTP53)) {
-        return `
-            <div class="o-vcard-section">
-                <label class="o-cb-row">
-                    <input type="checkbox" ${multiVariant ? 'checked' : ''} onchange="setVariantMultiVariant(${idx}, this.checked)">
-                    <span>2 or more reported P/LP variants in TP53</span>
-                </label>
+                <div class="o-qtitle">Age at diagnosis</div>
+                <input type="number" value="${ageInput}" placeholder="e.g. 28" min="1" max="120"
+                    oninput="setVariantAge(${idx}, this.value)" class="o-age-input">
             </div>`;
     }
     if (gene === 'EGFR' && coding.includes('c.2369C>T')) {
