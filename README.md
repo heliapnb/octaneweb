@@ -31,3 +31,7 @@ resources/              — Source PDFs (CCO eligibility criteria, germline work
 ## Clinical references
 
 Eligibility criteria based on **Hereditary Cancer Testing Eligibility Criteria v3.0** (Ontario Health – Cancer Care Ontario, October 2022).
+
+## Data sources
+
+Variant classifications are retrieved from **NCBI ClinVar** (https://www.ncbi.nlm.nih.gov/clinvar/). Primary data are obtained from the National Center for Biotechnology Information, U.S. National Library of Medicine. ClinVar is a public-domain resource; this tool is not affiliated with or endorsed by NCBI.
