@@ -289,7 +289,7 @@ function renderVariantCard(state, idx) {
 
 function renderVariantContextSection(state, idx) {
     const { gene, coding, contextAnswer, ageInput } = state;
-    const founderAPC = 'c.3920T>A';
+    const founderAPC = 'c.3920T>A', founderTP53 = 'c.1010G>A';
 
     if (gene === 'VHL') {
         return renderInlineYesNo(idx, 'Is the tumour Renal Cell Carcinoma?', ['Renal Cell Carcinoma'], contextAnswer);
@@ -298,12 +298,10 @@ function renderVariantContextSection(state, idx) {
         return renderInlineYesNo(idx, `Criteria supporting germline confirmation — ${gene}`, contextGenes[gene], contextAnswer);
     }
     if (gene === 'APC' && !coding.includes(founderAPC)) {
-        return `
-            <div class="o-vcard-section">
-                <div class="o-qtitle">Age at diagnosis</div>
-                <input type="number" value="${ageInput}" placeholder="e.g. 28" min="1" max="120"
-                    oninput="setVariantAge(${idx}, this.value)" class="o-age-input">
-            </div>`;
+        return renderAgeInput(idx, ageInput);
+    }
+    if (gene === 'TP53' && !coding.includes(founderTP53)) {
+        return renderAgeInput(idx, ageInput);
     }
     if (gene === 'EGFR' && coding.includes('c.2369C>T')) {
         return renderInlineYesNo(idx, 'Clinical Context — EGFR c.2369C>T', ['Patient is TKI Treatment-Naïve'], contextAnswer) +

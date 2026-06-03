@@ -209,7 +209,9 @@ function computeRecommendationForVariant(state) {
 
     if (gene === 'TP53') {
         if (coding.includes('c.1010G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TP53 founder variant (c.1010G>A).', rationale: 'TP53 c.1010G>A is a known germline founder mutation.', refs: [REFS.klek, REFS.kuzbari], pending: false };
-        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'TP53 variant does not meet criteria.', rationale: 'TP53 has only 0.9% overall GCR. Confirmation is reserved for the c.1010G>A founder variant.', refs: [REFS.kuzbari, REFS.klek], pending: false };
+        if (ageUnder30) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Tumour diagnosed at ≤30 years.', rationale: 'ESMO 2022 recommends germline confirmation for TP53 variants in patients diagnosed at or below 30 years.', refs: [REFS.kuzbari], pending: false };
+        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'TP53 variant does not meet criteria.', rationale: 'TP53 has only 0.9% overall GCR. Confirmation is reserved for the c.1010G>A founder variant or diagnosis ≤30y.', refs: [REFS.kuzbari, REFS.klek], pending: false };
+        return { pending: true };
     }
 
     if (gene === 'HOXB13' && coding.includes('c.251G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known HOXB13 founder variant (c.251G>A).', rationale: 'HOXB13 c.251G>A is a known founder germline variant associated with hereditary prostate cancer.', refs: [REFS.klek, REFS.clark], pending: false };
