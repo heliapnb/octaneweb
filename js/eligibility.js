@@ -1,22 +1,17 @@
 // --- ELIGIBILITY DATA (Hereditary Cancer Testing Eligibility Criteria v4.0, June 2026) ---
 const dxCategories = {
-    "HBOC": [
+    // Hereditary Breast, Ovarian, Prostate, Biliary Tract, and Pancreatic Cancers —
+    // v4.0 presents these as one merged criteria list, so every cancer in the bundle
+    // shows the full set of criteria below.
+    "BreastOvarianProstateBiliaryPancreatic": [
         "Personal history of breast cancer ≤ 50y",
         "Breast cancer at any age that is triple negative invasive, OR ≥ 2 primary (non-recurrent) breast cancers, OR breast cancer in a person assigned male at birth",
         "Invasive epithelial ovarian cancer (any grade), fallopian tube cancer, or primary peritoneal cancer (any age)",
-        "Breast cancer (any age) with ≥ 1 FDR/SDR whose cancer meets any breast/ovarian/prostate criterion here, OR ≥ 2 FDR/SDR with breast and/or prostate cancer (any age or stage)"
-    ],
-    "Prostate": [
-        "Personal history of prostate cancer ≤ 50y",
-        "Metastatic prostate cancer (any age)",
-        "High-risk locally advanced prostate cancer (any age) with ≥ 1 of: T3 or higher staging; Grade Group 4 or 5 (Gleason 8–10); lymph node involvement; PSA ≥ 20",
-        "Prostate cancer (any age) with ≥ 1 FDR/SDR whose cancer meets the breast/prostate criteria here, OR ≥ 2 FDR/SDR with prostate and/or breast cancer (any age or stage)"
-    ],
-    "Pancreatic": [
-        "Personal history of exocrine pancreatic cancer (any age)"
-    ],
-    "Biliary": [
-        "Personal history of biliary tract cancer, e.g. cholangiocarcinoma or gallbladder cancer (any age)"
+        "Exocrine pancreatic cancer (any age)",
+        "Biliary tract cancer, e.g. cholangiocarcinoma or gallbladder cancer (any age)",
+        "Prostate cancer ≤ 50y",
+        "High-risk prostate cancer (any age): metastatic; OR high-risk locally advanced with ≥ 1 of T3 or higher staging, Grade Group 4 or 5 (Gleason 8–10), lymph node involvement, or PSA ≥ 20",
+        "Breast or prostate cancer (any age) with ≥ 1 FDR/SDR whose cancer meets any criterion above, OR ≥ 2 FDR/SDR with prostate and/or breast cancer (any age or stage)"
     ],
     "Lynch": [
         "Personal history of colorectal cancer ≤ 50y",
@@ -86,20 +81,18 @@ const dxCategories = {
 };
 
 const dxMapping = {
-    // Hereditary Breast & Ovarian
-    "Breast Adenocarcinoma": "HBOC",
-    "Ovarian Serous Carcinoma": "HBOC",
-    "Fallopian Tube Cancer": "HBOC",
-    "Peritoneal Cancer": "HBOC",
-    // Prostate
-    "Prostate Cancer": "Prostate",
-    // Pancreatic
-    "Pancreatic Duct Adenocarcinoma": "Pancreatic",
-    "Pancreatic Adenocarcinoma": "Pancreatic",
-    // Biliary tract
-    "Cholangiocarcinoma": "Biliary",
-    "Gallbladder Cancer": "Biliary",
-    "Biliary Tract Cancer": "Biliary",
+    // Hereditary Breast, Ovarian, Prostate, Biliary Tract, and Pancreatic Cancers
+    // (all share the one merged v4.0 criteria list)
+    "Breast Adenocarcinoma": "BreastOvarianProstateBiliaryPancreatic",
+    "Ovarian Serous Carcinoma": "BreastOvarianProstateBiliaryPancreatic",
+    "Fallopian Tube Cancer": "BreastOvarianProstateBiliaryPancreatic",
+    "Peritoneal Cancer": "BreastOvarianProstateBiliaryPancreatic",
+    "Prostate Cancer": "BreastOvarianProstateBiliaryPancreatic",
+    "Pancreatic Duct Adenocarcinoma": "BreastOvarianProstateBiliaryPancreatic",
+    "Pancreatic Adenocarcinoma": "BreastOvarianProstateBiliaryPancreatic",
+    "Cholangiocarcinoma": "BreastOvarianProstateBiliaryPancreatic",
+    "Gallbladder Cancer": "BreastOvarianProstateBiliaryPancreatic",
+    "Biliary Tract Cancer": "BreastOvarianProstateBiliaryPancreatic",
     // Gastric (incl. lobular breast / diffuse gastric)
     "Lobular Breast Cancer": "Gastric",
     "Diffuse Gastric Cancer": "Gastric",
