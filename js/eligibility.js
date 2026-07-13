@@ -1,102 +1,111 @@
-// --- ELIGIBILITY DATA ---
+// --- ELIGIBILITY DATA (Hereditary Cancer Testing Eligibility Criteria v4.0, June 2026) ---
 const dxCategories = {
     "HBOC": [
-        "Breast cancer ≤ 45y",
-        "Breast cancer ≤ 50y with limited family structure (e.g. adoption, few female relatives)",
-        "Breast cancer ≤ 50y with a second primary breast cancer",
-        "Triple negative invasive breast cancer ≤ 60y",
-        "Male breast cancer (any age)",
-        "Invasive epithelial ovarian, fallopian tube, or peritoneal cancer (any age)",
-        "Breast or ovarian cancer (any age) + close relative with breast or ovarian cancer (if 2 breast cancers, one must be ≤ 50y)",
-        "Breast or ovarian cancer (any age) + close relative with triple negative breast cancer ≤ 60y",
-        "Breast or ovarian cancer (any age) + close relative with male breast cancer",
-        "Breast or ovarian cancer (any age) + close relative with pancreatic adenocarcinoma",
-        "Breast or ovarian cancer (any age) + close relative with high-risk prostate cancer (T3+, Gleason 8–10, node involvement, or PSA ≥ 20)",
-        "Breast or ovarian cancer (any age) + ≥2 close relatives with breast or prostate cancer (any age)"
+        "Personal history of breast cancer ≤ 50y",
+        "Breast cancer at any age that is triple negative invasive, OR ≥ 2 primary (non-recurrent) breast cancers, OR breast cancer in a person assigned male at birth",
+        "Invasive epithelial ovarian cancer (any grade), fallopian tube cancer, or primary peritoneal cancer (any age)",
+        "Breast cancer (any age) with ≥ 1 FDR/SDR whose cancer meets any breast/ovarian/prostate criterion here, OR ≥ 2 FDR/SDR with breast and/or prostate cancer (any age or stage)"
     ],
     "Prostate": [
-        "Metastatic prostate cancer",
-        "High-risk locally advanced: T3 or higher staging",
-        "High-risk locally advanced: Gleason score ≥ 8 (Grade Group 4 or 5)",
-        "High-risk locally advanced: lymph node involvement",
-        "High-risk locally advanced: PSA ≥ 20",
-        "Prostate cancer + ≥1 close relative with prostate cancer (at least one high-risk or metastatic)",
-        "Prostate cancer + ≥2 close relatives with prostate, pancreatic, ovarian, or breast cancer (any age or stage)"
-    ],
-    "Lynch": [
-        "IHC-deficient tumor (MMR loss) — not BRAF positive or MLH1 methylated (CRC)",
-        "IHC-deficient tumor (MMR loss) — MSH2, MSH6, or PMS2 deficient",
-        "IHC-deficient sebaceous neoplasm ≤ 60y",
-        "IHC-deficient sebaceous neoplasm — multiple primary sebaceous neoplasms",
-        "IHC-deficient sebaceous neoplasm + personal or family history of Lynch-associated cancer",
-        "CRC or endometrial cancer ≤ 50y",
-        "2+ primary Lynch-associated cancers (first diagnosed ≤ 60y)",
-        "Lynch-associated cancer + ≥2 close relatives with Lynch-associated cancer",
-        "≥ 20 colorectal adenomas (any age)",
-        "10–19 colorectal adenomas ≤ 60y",
-        "Serrated polyposis: > 20 serrated polyps in colon/rectum, ≥5 proximal to rectum",
-        "Serrated polyposis: ≥5 serrated polyps proximal to rectum (all ≥5 mm, ≥2 measuring ≥10 mm)"
-    ],
-    "Gastric": [
-        "Gastric or gastroesophageal junction (GEJ) adenocarcinoma ≤ 50y",
-        "Diffuse gastric cancer (any age) — patient of Māori ethnicity",
-        "Diffuse gastric cancer (any age) — personal or family history of cleft lip/palate",
-        "Diffuse gastric cancer + lobular breast cancer (both diagnosed < 70y)",
-        "Bilateral lobular breast cancer (both diagnosed < 70y)",
-        "Gastric in situ signet ring cells or pagetoid spread of signet ring cells < 50y",
-        "≥2 close relatives with gastric cancer (any age), at least one confirmed diffuse type",
-        "≥1 close relative with diffuse gastric cancer (any age) + ≥1 close relative with lobular breast cancer < 70y (different family members)",
-        "≥2 close relatives with lobular breast cancer < 50y",
-        "≥3 close relatives with gastric cancer (any type)"
-    ],
-    "Renal": [
-        "Renal tumour ≤ 45y",
-        "Bilateral or multifocal renal tumours",
-        "Close relative with a renal tumour",
-        "Non-clear cell pathology (papillary, chromophobe, oncocytic, or hybrid tumour)",
-        "Evidence of syndromic presentation (e.g. seizures, pneumothorax)",
-        "Personal or family history of associated tumours (e.g. hemangioblastoma, angiomyolipomas)"
+        "Personal history of prostate cancer ≤ 50y",
+        "Metastatic prostate cancer (any age)",
+        "High-risk locally advanced prostate cancer (any age) with ≥ 1 of: T3 or higher staging; Grade Group 4 or 5 (Gleason 8–10); lymph node involvement; PSA ≥ 20",
+        "Prostate cancer (any age) with ≥ 1 FDR/SDR whose cancer meets the breast/prostate criteria here, OR ≥ 2 FDR/SDR with prostate and/or breast cancer (any age or stage)"
     ],
     "Pancreatic": [
-        "Personal history of pancreatic adenocarcinoma (any age, any family history)"
+        "Personal history of exocrine pancreatic cancer (any age)"
+    ],
+    "Biliary": [
+        "Personal history of biliary tract cancer, e.g. cholangiocarcinoma or gallbladder cancer (any age)"
+    ],
+    "Lynch": [
+        "Personal history of colorectal cancer ≤ 50y",
+        "Personal history of endometrial cancer ≤ 50y",
+        "Mismatch repair (MMR) deficient tumour (any age): MSH2, MSH6, or isolated PMS2 IHC-deficient Lynch tumour (excluding sebaceous neoplasm); OR MLH1 ± PMS2 IHC-deficient Lynch tumour with unmethylated MLH1 promoter (for colorectal tumours, also absence of BRAF V600E)",
+        "MMR IHC-deficient sebaceous neoplasm plus ≥ 1 of: diagnosis ≤ 60y; ≥ 2 primary sebaceous neoplasms; or personal and/or family history (FDR/SDR) of a Lynch-associated cancer",
+        "Amsterdam I/II family: ≥ 3 affected FDR/SDR with colorectal, endometrial, small bowel, ureter, or renal pelvis cancer over two successive generations, ≥ 1 diagnosed under 50y, and ≥ 1 an FDR of the other two",
+        "Suspicious extracolonic tumour: cribriform-morular variant of papillary thyroid cancer; hepatoblastoma; desmoid ≤ 40y; or retinal pigment epithelium (RPE) hamartomas associated with FAP",
+        "Colorectal adenomas: ≥ 20 (any age); OR 10–19 diagnosed ≤ 60y; OR 5–9 with FAP/MAP-associated features or another qualifying age/family-history risk factor",
+        "Serrated (sessile) polyps: > 20 in the colon/rectum with ≥ 5 proximal to the rectum; OR ≥ 5 proximal to the rectum, all ≥ 5 mm with ≥ 2 measuring ≥ 10 mm",
+        "Fundic gland polyps: 100+ (carpeting); OR > 30 in the absence of PPI use with a qualifying family history of gastric cancer or fundic gland polyposis",
+        "Peutz-Jeghers-type hamartomas: ≥ 2; OR 1 with mucocutaneous pigmentation or a FDR/SDR with Peutz-Jeghers syndrome",
+        "Juvenile polyps: ≥ 5 in the colorectum; OR 1 with a family history of juvenile polyposis syndrome"
+    ],
+    "Gastric": [
+        "Diagnosis ≤ 50y of gastric adenocarcinoma, gastroesophageal junction adenocarcinoma, gastric in situ signet ring cells, or gastric pagetoid spread of signet ring cells",
+        "Both diffuse gastric cancer (DGC) and lobular breast cancer, diagnosed ≤ 70y",
+        "DGC (any age) with Māori ancestry, OR a personal or family history of cleft lip/palate",
+        "Family history: ≥ 2 FDR/SDR with gastric cancer (any age), ≥ 1 confirmed DGC; OR ≥ 1 FDR/SDR with DGC (any age) plus ≥ 1 FDR/SDR with lobular breast cancer ≤ 70y in different family members on the same side; OR ≥ 2 FDR/SDR with lobular breast cancer ≤ 50y; OR ≥ 3 FDR/SDR with gastric cancer (any type)"
+    ],
+    "Renal": [
+        "Renal tumour with ≥ 1 of: bilateral or multifocal disease; diagnosis ≤ 45y; ≥ 1 FDR/SDR with a renal tumour; non-clear cell pathology (papillary, chromophobe, oncocytic, hybrid); evidence of syndromic presentation (e.g. seizures, pneumothorax); or personal/family history of associated tumours (e.g. hemangioblastoma, leiomyomas, angiomyolipomas)"
     ],
     "GIST": [
-        "Multiple primary GISTs",
+        "≥ 2 primary GISTs",
+        "GIST diagnosed ≤ 18y",
         "GIST with syndromic manifestations",
-        "SDH-deficient GIST, or GIST with NF1/SDH variants",
-        "GIST (any age) + ≥1 close relative with GIST"
+        "SDH-deficient GIST, or GIST with tumour-detected variants in NF1, SDHA, SDHAF2, SDHB, SDHC, or SDHD",
+        "GIST (any age) with ≥ 1 FDR/SDR with a GIST, pheochromocytoma, or paraganglioma (any age)"
     ],
     "Melanoma": [
-        "≥3 primary malignant melanomas",
-        "Melanoma + ≥2 first/second degree relatives with melanoma and/or pancreatic cancer",
-        "Melanoma < 40y + ≥1 first/second degree relative with melanoma or pancreatic cancer",
-        "Uveal melanoma (any age)"
+        "≥ 3 primary malignant cutaneous melanomas",
+        "Uveal melanoma (any age)",
+        "Malignant cutaneous melanoma ≤ 18y",
+        "Malignant cutaneous melanoma ≤ 40y with ≥ 1 FDR/SDR with malignant melanoma (any age)",
+        "Malignant melanoma (any age) with ≥ 1 of: ≥ 1 FDR with uveal melanoma; ≥ 1 FDR/SDR with malignant cutaneous melanoma ≤ 40y; ≥ 1 FDR/SDR with exocrine pancreatic cancer or a neural system tumour; or ≥ 2 FDR/SDR with any combination of malignant cutaneous melanoma, exocrine pancreatic cancer, or neural system tumour"
     ],
     "Pheo_Para": [
-        "Personal history of pheochromocytoma or paraganglioma (any age)"
+        "Personal history of a pheochromocytoma and/or paraganglioma at any age"
     ],
     "CNS": [
-        "Brain tumour + multiple tumours or cancers in same person (e.g. brain + soft tissue + Lynch-associated cancer)",
-        "Brain tumour + ≥2 close relatives with brain tumours or associated cancers (Lynch, Li-Fraumeni, soft tissue) on same side of family"
+        "Brain tumour with ≥ 1 of: a personal history of ≥ 1 additional primary tumour and/or cancer (e.g. brain, soft tissue, Lynch-associated); ≥ 1 FDR/SDR with ≥ 2 primary tumours or cancers in one person; or ≥ 2 FDR/SDR with brain tumours and/or associated cancers (Lynch, Li-Fraumeni, soft tissue) on the same side of the family"
+    ],
+    "Lung": [
+        "Lung adenocarcinoma (regardless of smoking history) diagnosed ≤ 45y with ≥ 1 of: a personal history of pre-menopausal breast cancer, glioma, adrenocortical carcinoma, acute leukemia, or choroid plexus tumour; OR ≥ 1 FDR/SDR with pre-menopausal breast cancer, glioma, sarcoma, adrenocortical carcinoma, acute leukemia, choroid plexus tumour, or lung adenocarcinoma diagnosed ≤ 55y",
+        "Lung adenocarcinoma diagnosed ≤ 50y with a somatic EGFR-activating variant or deletion (e.g. p.L858R, p.G719A/C/S, exon 19 deletion)",
+        "EGFR T790M variant in the associated lung tumour in a tyrosine kinase inhibitor treatment-naïve patient"
     ],
     "SoftTissue": [
-        "Sarcoma < 45y + family history of young-onset malignancy in ≥1 close relative",
-        "Sarcoma < 45y + evidence of syndromic presentation"
+        "Sarcoma ≤ 45y with ≥ 1 of: a family history of young-onset malignancy in a FDR/SDR; or congenital anomalies",
+        "Osteosarcoma ≤ 18y",
+        "Rhabdomyosarcoma with ≥ 1 of: diagnosis ≤ 4y; anaplastic histology; or gynecologic site"
+    ],
+    "Medulloblastoma": [
+        "WNT-subgroup medulloblastoma with ≥ 1 of: no somatic CTNNB1 activating variant (if somatic sequencing done); beta-catenin IHC showing lack of nuclear staining (if somatic sequencing not done); or a family history suspicious of FAP",
+        "SHH-subgroup medulloblastoma",
+        "Group 3 or 4 medulloblastoma with a family history suspicious of hereditary breast and ovarian cancer"
+    ],
+    "Nephroblastoma": [
+        "Personal history of a Wilms tumour (nephroblastoma) — all patients should also have concurrent testing for Beckwith-Wiedemann syndrome"
+    ],
+    "Neuroblastoma": [
+        "Neuroblastic tumour (neuroblastoma, ganglioneuroblastoma, or ganglioneuroma) with ≥ 1 of: bilateral or multifocal disease; or a FDR/SDR with a neuroblastic tumour",
+        "Neuroblastic tumour with features consistent with Noonan syndrome or other RASopathies, NF1, or Weaver syndrome",
+        "Neuroblastic tumour with ≥ 1 of: Hirschsprung disease or unexplained significant constipation; or congenital central hypoventilation syndrome or sleep apnea requiring ventilation aids"
     ]
 };
 
 const dxMapping = {
-    // HBOC
+    // Hereditary Breast & Ovarian
     "Breast Adenocarcinoma": "HBOC",
     "Ovarian Serous Carcinoma": "HBOC",
     "Fallopian Tube Cancer": "HBOC",
     "Peritoneal Cancer": "HBOC",
-    // Gastric
+    // Prostate
+    "Prostate Cancer": "Prostate",
+    // Pancreatic
+    "Pancreatic Duct Adenocarcinoma": "Pancreatic",
+    "Pancreatic Adenocarcinoma": "Pancreatic",
+    // Biliary tract
+    "Cholangiocarcinoma": "Biliary",
+    "Gallbladder Cancer": "Biliary",
+    "Biliary Tract Cancer": "Biliary",
+    // Gastric (incl. lobular breast / diffuse gastric)
     "Lobular Breast Cancer": "Gastric",
     "Diffuse Gastric Cancer": "Gastric",
     "Gastric Adenocarcinoma": "Gastric",
     "Gastroesophageal Junction Adenocarcinoma": "Gastric",
-    // Lynch / GI
+    // Lynch / colorectal / polyposis
     "Colon Adenocarcinoma": "Lynch",
     "Colorectal Cancer": "Lynch",
     "Endometrial Cancer": "Lynch",
@@ -107,15 +116,11 @@ const dxMapping = {
     "Papillary Renal Cell Carcinoma": "Renal",
     "Chromophobe Renal Cell Carcinoma": "Renal",
     "Renal Cell Carcinoma": "Renal",
-    // Prostate
-    "Prostate Cancer": "Prostate",
-    // Pancreatic
-    "Pancreatic Duct Adenocarcinoma": "Pancreatic",
-    "Pancreatic Adenocarcinoma": "Pancreatic",
     // GIST
     "Gastrointestinal Stromal Tumour": "GIST",
     // Melanoma
     "Malignant Melanoma": "Melanoma",
+    "Cutaneous Melanoma": "Melanoma",
     "Uveal Melanoma": "Melanoma",
     // Pheochromocytoma / Paraganglioma
     "Pheochromocytoma": "Pheo_Para",
@@ -124,11 +129,21 @@ const dxMapping = {
     "Glioblastoma": "CNS",
     "Glioma": "CNS",
     "Brain Tumour": "CNS",
-    // Soft Tissue
+    // Lung
+    "Lung Adenocarcinoma": "Lung",
+    // Soft tissue / bone sarcoma
     "Soft Tissue Sarcoma": "SoftTissue",
     "Leiomyosarcoma": "SoftTissue",
     "Rhabdomyosarcoma": "SoftTissue",
-    "Liposarcoma": "SoftTissue"
+    "Liposarcoma": "SoftTissue",
+    "Osteosarcoma": "SoftTissue",
+    // Pediatric cancer syndromes
+    "Medulloblastoma": "Medulloblastoma",
+    "Wilms Tumour": "Nephroblastoma",
+    "Nephroblastoma": "Nephroblastoma",
+    "Neuroblastoma": "Neuroblastoma",
+    "Ganglioneuroblastoma": "Neuroblastoma",
+    "Ganglioneuroma": "Neuroblastoma"
 };
 
 // --- ELIGIBILITY HELPERS (pure, no DOM) ---
