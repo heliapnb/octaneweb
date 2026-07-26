@@ -408,6 +408,10 @@ function renderVariantContextSection(state, idx) {
     if (gene === 'VHL') {
         return renderInlineYesNo(idx, 'Is the tumour Renal Cell Carcinoma?', ['Renal Cell Carcinoma'], contextAnswer);
     }
+    if (ageOrContextGenes.includes(gene)) {
+        return renderInlineYesNo(idx, `Criteria supporting germline confirmation — ${gene}`, contextGenes[gene], contextAnswer)
+             + renderAgeInput(idx, ageInput);
+    }
     if (contextGenes[gene]) {
         return renderInlineYesNo(idx, `Criteria supporting germline confirmation — ${gene}`, contextGenes[gene], contextAnswer);
     }

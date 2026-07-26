@@ -37,6 +37,11 @@ const contextRationale = {
     "SMARCB1": "SMARCB1 germline conversion rate is context-dependent. Selected clinical context supports germline confirmation per ESMO 2022 recommendations."
 };
 
+// Recommended if the tumour was diagnosed ≤30y OR a supporting clinical context is met
+// (either one alone is sufficient). Their context lists and rationale live in the
+// contextGenes / contextRationale objects above.
+const ageOrContextGenes = ["PTEN", "CDKN2A", "RB1", "SMARCA4"];
+
 // Step 8: age ≤30 at diagnosis → REVIEW/MDT, else NOT OFFERED
 const step8Genes = [
     "AIP", "AXIN2", "CDK4", "CTNNA1", "EGFR", "EGLN1", "EXT1", "EXT2",
@@ -48,10 +53,8 @@ const step8Genes = [
 // Reference links
 const REFS = {
     kuzbari: { text: "Kuzbari et al., ESMO 2022", url: "https://doi.org/10.1016/j.annonc.2022.12.003" },
-    ricker:  { text: "Ricker et al., ASCO 2024",  url: "https://doi.org/10.1200/OP.24.00278" },
     clark:   { text: "Clark et al., JCO 2019",    url: "https://doi.org/10.1200/PO.19.00076" },
-    klek:    { text: "Klek et al., JNCI 2020",    url: "https://doi.org/10.1093/jncics/pkaa018" },
-    amp:     { text: "AMP/ASCO/CAP 2017",         url: "http://dx.doi.org/10.1016/j.jmoldx.2016.10.002" }
+    klek:    { text: "Klek et al., JNCI 2020",    url: "https://doi.org/10.1093/jncics/pkaa018" }
 };
 
 const allGenes = [...new Set([
@@ -189,44 +192,51 @@ function computeRecommendationForVariant(state) {
         return { pending: true };
     }
 
+    if (ageOrContextGenes.includes(gene)) {
+        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'Clinical context met for germline confirmation.', rationale: contextRationale[gene] || `${gene} germline confirmation is supported by the selected clinical context, irrespective of age.`, refs: [REFS.kuzbari], pending: false };
+        if (ageUnder30) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Tumour diagnosed at ≤30 years.', rationale: `ESMO recommends germline confirmation for ${gene} variants in tumours diagnosed at or below 30 years, irrespective of clinical context.`, refs: [REFS.kuzbari], pending: false };
+        if (ctxNo && ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: `${gene} — no qualifying context and age >30.`, rationale: `${gene} germline confirmation is reserved for tumours diagnosed ≤30 years or a supporting clinical context; neither is met.`, refs: [REFS.kuzbari], pending: false };
+        return { pending: true };
+    }
+
     if (contextGenes[gene]) {
-        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'Clinical context met for germline confirmation.', rationale: contextRationale[gene] || `${gene} germline conversion rate is context-dependent. Selected clinical context supports germline confirmation.`, refs: [REFS.kuzbari, REFS.ricker], pending: false };
+        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'Clinical context met for germline confirmation.', rationale: contextRationale[gene] || `${gene} germline conversion rate is context-dependent. Selected clinical context supports germline confirmation.`, refs: [REFS.kuzbari], pending: false };
         if (ctxNo)  return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'No applicable clinical context identified.', rationale: `${gene} germline conversion rate is context-dependent. Without a matching clinical context, germline confirmation is not recommended.`, refs: [REFS.kuzbari], pending: false };
         return { pending: true };
     }
 
     if (gene === 'MUTYH') {
-        if (coding.includes('c.452A>G') || coding.includes('c.1103G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known MUTYH founder variant identified.', rationale: 'MUTYH has a 98.5% germline conversion rate. The detected variant is a known founder mutation.', refs: [REFS.klek, REFS.kuzbari], pending: false };
-        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'Not a known MUTYH founder variant.', rationale: 'Confirmation is reserved for the established founder variants c.452A>G and c.1103G>A.', refs: [REFS.klek, REFS.kuzbari], pending: false };
+        if (coding.includes('c.452A>G') || coding.includes('c.1103G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known MUTYH founder variant identified.', rationale: 'MUTYH has a 98.5% germline conversion rate. The detected variant is a known founder mutation.', refs: [REFS.kuzbari, REFS.clark, REFS.klek], pending: false };
+        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'Not a known MUTYH founder variant.', rationale: 'Confirmation is reserved for the established founder variants c.452A>G and c.1103G>A.', refs: [REFS.kuzbari], pending: false };
     }
 
     if (gene === 'APC') {
-        if (coding.includes('c.3920T>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known APC founder variant (c.3920T>A).', rationale: 'APC c.3920T>A is a known germline founder mutation.', refs: [REFS.klek, REFS.kuzbari], pending: false };
+        if (coding.includes('c.3920T>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known APC founder variant (c.3920T>A).', rationale: 'APC c.3920T>A is a known germline founder mutation.', refs: [REFS.kuzbari, REFS.clark, REFS.klek], pending: false };
         if (ageUnder30) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Tumour diagnosed at ≤30 years.', rationale: 'ESMO 2022 recommends germline confirmation for APC variants in patients diagnosed at or below 30 years.', refs: [REFS.kuzbari], pending: false };
-        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'APC variant does not meet criteria.', rationale: 'APC has only 1.1% overall GCR. Confirmation is reserved for c.3920T>A or diagnosis ≤30y.', refs: [REFS.kuzbari, REFS.klek], pending: false };
+        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'APC variant does not meet criteria.', rationale: 'APC has only 1.1% overall GCR. Confirmation is reserved for c.3920T>A or diagnosis ≤30y.', refs: [REFS.kuzbari], pending: false };
         return { pending: true };
     }
 
     if (gene === 'TP53') {
-        if (coding.includes('c.1010G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TP53 founder variant (c.1010G>A).', rationale: 'TP53 c.1010G>A is a known germline founder mutation.', refs: [REFS.klek, REFS.kuzbari], pending: false };
+        if (coding.includes('c.1010G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TP53 founder variant (c.1010G>A).', rationale: 'TP53 c.1010G>A is a known germline founder mutation.', refs: [REFS.kuzbari, REFS.clark, REFS.klek], pending: false };
         if (ageUnder30) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Tumour diagnosed at ≤30 years.', rationale: 'ESMO 2022 recommends germline confirmation for TP53 variants in patients diagnosed at or below 30 years.', refs: [REFS.kuzbari], pending: false };
-        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'TP53 variant does not meet criteria.', rationale: 'TP53 has only 0.9% overall GCR. Confirmation is reserved for the c.1010G>A founder variant or diagnosis ≤30y.', refs: [REFS.kuzbari, REFS.klek], pending: false };
+        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'TP53 variant does not meet criteria.', rationale: 'TP53 has only 0.9% overall GCR. Confirmation is reserved for the c.1010G>A founder variant or diagnosis ≤30y.', refs: [REFS.kuzbari], pending: false };
         return { pending: true };
     }
 
-    if (gene === 'HOXB13' && coding.includes('c.251G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known HOXB13 founder variant (c.251G>A).', rationale: 'HOXB13 c.251G>A is a known founder germline variant associated with hereditary prostate cancer.', refs: [REFS.klek, REFS.clark], pending: false };
+    if (gene === 'HOXB13' && coding.includes('c.251G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known HOXB13 founder variant (c.251G>A).', rationale: 'HOXB13 c.251G>A is a known founder germline variant associated with hereditary prostate cancer.', refs: [REFS.clark, REFS.klek], pending: false };
 
-    if (gene === 'TERT' && coding.includes('c.-57T>G')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TERT founder variant (c.-57T>G).', rationale: 'TERT c.-57T>G is a known founder germline variant associated with increased cancer susceptibility.', refs: [REFS.klek, REFS.clark], pending: false };
+    if (gene === 'TERT' && coding.includes('c.-57T>G')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TERT founder variant (c.-57T>G).', rationale: 'TERT c.-57T>G is a known founder germline variant associated with increased cancer susceptibility.', refs: [REFS.clark, REFS.klek], pending: false };
 
     if (gene === 'EGFR' && coding.includes('c.2369C>T')) {
-        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'EGFR c.2369C>T in TKI treatment-naïve patient.', rationale: 'EGFR c.2369C>T (p.T790M) in a TKI-naïve patient suggests germline origin rather than acquired resistance.', refs: [REFS.ricker], pending: false };
+        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'EGFR c.2369C>T in TKI treatment-naïve patient.', rationale: 'EGFR c.2369C>T (p.T790M) in a TKI-naïve patient suggests germline origin rather than acquired resistance.', refs: [REFS.clark, REFS.klek], pending: false };
         if (ctxNo)  { /* fall through to step8 */ }
         else        return { pending: true };
     }
 
     if (step8Genes.includes(gene)) {
         if (ageInput === '') return { pending: true };
-        if (ageUnder30) return { rec: 'REVIEW / MDT', color: 'amber', icon: 'fa-users', sub: `${gene} — MDT review recommended (age ≤30).`, rationale: `${gene} has low overall GCR but elevated germline probability in patients ≤30 years at diagnosis. MDT discussion recommended.`, refs: [REFS.kuzbari, REFS.ricker], pending: false };
+        if (ageUnder30) return { rec: 'REVIEW / MDT', color: 'amber', icon: 'fa-users', sub: `${gene} — MDT review recommended (age ≤30).`, rationale: `${gene} has low overall GCR but elevated germline probability in patients ≤30 years at diagnosis. MDT discussion recommended.`, refs: [REFS.kuzbari], pending: false };
         return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: `${gene} — age >30 does not meet criteria.`, rationale: `${gene} germline follow-up is only considered for patients diagnosed at ≤30 years.`, refs: [REFS.kuzbari], pending: false };
     }
 
