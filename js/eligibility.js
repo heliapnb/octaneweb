@@ -32,7 +32,7 @@ const dxCategories = {
         "MMR IHC-deficient sebaceous neoplasm plus ≥ 1 of: diagnosis ≤ 60y; ≥ 2 primary sebaceous neoplasms; or personal and/or family history (FDR/SDR) of a Lynch-associated cancer",
         "Amsterdam I/II family: ≥ 3 affected FDR/SDR with colorectal, endometrial, small bowel, ureter, or renal pelvis cancer over two successive generations, ≥ 1 diagnosed under 50y, and ≥ 1 an FDR of the other two",
         "Suspicious extracolonic tumour: cribriform-morular variant of papillary thyroid cancer; hepatoblastoma; desmoid ≤ 40y; or retinal pigment epithelium (RPE) hamartomas associated with FAP",
-        "Personal history of polyps with relevant additional risk factors — polyp histology must be confirmed by pathology. <a href='#' onclick='showPolyposisTable();return false;' style='text-decoration:underline;font-weight:600;'>View the full polyposis table (Table 1) →</a>"
+        "Personal history of polyps with relevant additional risk factors — polyp histology must be confirmed by pathology. <a href='#' onclick='showPolyposisTable();return false;' style='text-decoration:underline;font-weight:600;'>View the full polyposis criteria table →</a>"
     ],
     "Gastric": [
         "Diagnosis ≤ 50y of gastric adenocarcinoma, gastroesophageal junction adenocarcinoma, gastric in situ signet ring cells, or gastric pagetoid spread of signet ring cells",
