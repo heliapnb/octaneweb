@@ -16,8 +16,7 @@ const dxCategories = {
     "Lynch": [
         "Personal history of colorectal cancer ≤ 50y",
         "Personal history of endometrial cancer ≤ 50y",
-        "MMR-deficient tumour (any age) showing IHC loss of MSH2, MSH6, or PMS2 alone (sebaceous neoplasms are covered by their own criterion below)",
-        "MMR-deficient tumour (any age) showing IHC loss of MLH1 (± PMS2) that is not sporadic — i.e. the MLH1 promoter is unmethylated, and for colorectal tumours the tumour is also BRAF V600E–negative",
+        "Mismatch repair (MMR) deficient tumour (any age): MSH2, MSH6, or isolated PMS2 IHC-deficient Lynch tumour (excluding sebaceous neoplasm); OR MLH1 ± PMS2 IHC-deficient Lynch tumour with unmethylated MLH1 promoter (for colorectal tumours, also absence of BRAF V600E)",
         "MMR IHC-deficient sebaceous neoplasm plus ≥ 1 of: diagnosis ≤ 60y; ≥ 2 primary sebaceous neoplasms; or personal and/or family history (FDR/SDR) of a Lynch-associated cancer",
         "Amsterdam I/II family: ≥ 3 affected FDR/SDR with colorectal, endometrial, small bowel, ureter, or renal pelvis cancer over two successive generations, ≥ 1 diagnosed under 50y, and ≥ 1 an FDR of the other two",
         "Suspicious extracolonic tumour: cribriform-morular variant of papillary thyroid cancer; hepatoblastoma; desmoid ≤ 40y; or retinal pigment epithelium (RPE) hamartomas associated with FAP",
