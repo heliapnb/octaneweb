@@ -76,6 +76,120 @@ function resetEligibility() {
 }
 
 
+// ─── POLYPOSIS TABLE (v4.0 Table 1) ──────────────────────────────────────────
+
+const POLYPOSIS_TABLE = [
+    {
+        histology: "Adenomatous polyps / colorectal adenomas",
+        note: "Includes tubular (TA), tubulovillous (TVA), and villous (VA) adenomas",
+        rows: [
+            { count: "≥ 20", factors: ["None"] },
+            { count: "10–19", factors: ["Diagnosed ≤ 60 years of age"] },
+            { count: "5–9", factors: [
+                "Diagnosed ≤ 40y with an extracolonic manifestation commonly associated with familial adenomatous polyposis (FAP) or MUTYH-associated polyposis (MAP)",
+                "Diagnosed ≤ 50y plus ≥ 1 of: endometrial cancer ≤ 60y; glioblastoma or astrocytoma; or ≥ 10 additional polyps (e.g. serrated adenoma, hyperplastic, or unbiopsied polyps that could represent additional adenomas)",
+                "Diagnosed at any age with ≥ 1 FDR with CRC ≤ 50, EC ≤ 60, or high-grade glioma; or > 2 FDR/SDR with CRC or EC at any age"
+            ] }
+        ]
+    },
+    {
+        histology: "Fundic gland polyps (FGP)",
+        rows: [
+            { count: "100+", factors: ["Carpeting / clustering observed in the absence of proton pump inhibitor (PPI) use, sparing the antrum and lesser curvature of the stomach"] },
+            { count: "> 30", factors: ["Observed in the absence of PPI use, sparing the antrum and curvature of the stomach, plus ≥ 1 FDR with pathology-confirmed gastric cancer under age 50 or pathology-confirmed fundic gland polyposis"] }
+        ]
+    },
+    {
+        histology: "Peutz-Jeghers hamartoma",
+        rows: [
+            { count: "≥ 2", factors: ["None"] },
+            { count: "1", factors: ["Personal history of mucocutaneous pigmentation, OR ≥ 1 FDR/SDR with Peutz-Jeghers syndrome (PJS)"] }
+        ]
+    },
+    {
+        histology: "Juvenile polyps hamartoma",
+        rows: [
+            { count: "≥ 5", factors: ["Located in the colorectum, or multiple polyps located in ≥ 2 organs of the gastrointestinal tract"] },
+            { count: "1", factors: ["With a family history of juvenile polyposis syndrome (JPS)"] }
+        ]
+    },
+    {
+        histology: "Other hamartomas",
+        rows: [
+            { count: "—", factors: ["Hamartoma and ganglioneuroma are minor criteria in PTEN hamartoma tumour syndrome (see Appendix D)"] }
+        ]
+    },
+    {
+        histology: "Serrated (sessile) adenomas / polyps",
+        note: "Serrated polyps include hyperplastic polyps (HPs), sessile serrated polyps (SSPs/SSAs), and traditional serrated adenomas (TSAs)",
+        rows: [
+            { count: "> 20", factors: ["Located in the colon/rectum, with ≥ 5 proximal to the rectum"] },
+            { count: "≥ 5", factors: ["Located proximal to the rectum, with all polyps ≥ 5 mm and ≥ 2 polyps measuring ≥ 10 mm"] }
+        ]
+    }
+];
+
+function polyposisEscHandler(e) { if (e.key === 'Escape') closePolyposisTable(); }
+
+function closePolyposisTable() {
+    const o = document.getElementById('polyposisModalOverlay');
+    if (o) o.remove();
+    document.removeEventListener('keydown', polyposisEscHandler);
+}
+
+function showPolyposisTable() {
+    if (document.getElementById('polyposisModalOverlay')) return;
+
+    const thStyle = "font-family:var(--font-display);font-size:11px;font-weight:600;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;padding:10px 16px;text-align:left;background:var(--bg-soft);border-bottom:1px solid var(--border-soft);";
+    const tdStyle = "padding:12px 16px;vertical-align:top;border-bottom:1px solid var(--border-fade);font-size:13px;color:var(--ink-soft);line-height:1.5;";
+
+    const bodyRows = POLYPOSIS_TABLE.map(group => {
+        const span = group.rows.length;
+        return group.rows.map((r, i) => {
+            const factors = r.factors.length > 1
+                ? "<ul style='margin:0;padding-left:18px;'>" + r.factors.map(f => `<li style='margin-bottom:5px;'>${f}</li>`).join('') + "</ul>"
+                : r.factors[0];
+            const noteHtml = group.note
+                ? `<div style='margin-top:6px;font-size:11px;font-style:italic;color:var(--mute-light);font-weight:400;'>${group.note}</div>`
+                : '';
+            const histCell = i === 0
+                ? `<td rowspan='${span}' style='${tdStyle}width:26%;font-weight:600;color:var(--ink);background:var(--bg-softer);'>${group.histology}${noteHtml}</td>`
+                : '';
+            return `<tr>${histCell}<td style='${tdStyle}width:14%;font-weight:600;white-space:nowrap;'>${r.count}</td><td style='${tdStyle}'>${factors}</td></tr>`;
+        }).join('');
+    }).join('');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'polyposisModalOverlay';
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(17,24,39,0.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:1000;";
+    overlay.onclick = (e) => { if (e.target === overlay) closePolyposisTable(); };
+    overlay.innerHTML = `
+      <div style="background:var(--bg-card);max-width:880px;width:100%;border:1px solid var(--border);border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--border-soft);background:var(--bg-soft);">
+          <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--ink);">Table 1 — Polyposis Criteria</div>
+          <button onclick="closePolyposisTable()" aria-label="Close" style="background:none;border:none;font-size:26px;line-height:1;color:var(--mute);cursor:pointer;padding:0 4px;">×</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;min-width:640px;">
+            <thead>
+              <tr>
+                <th style="${thStyle}">Polyp histology</th>
+                <th style="${thStyle}">No. of polyps</th>
+                <th style="${thStyle}">Additional risk factors required</th>
+              </tr>
+            </thead>
+            <tbody>${bodyRows}</tbody>
+          </table>
+        </div>
+        <div style="padding:14px 22px;border-top:1px solid var(--border-soft);font-size:11px;color:var(--mute-light);line-height:1.5;">
+          Polyp histology must be confirmed by pathology. Source: Hereditary Cancer Testing Eligibility Criteria v4.0 (Ontario Health – Cancer Care Ontario, June 2026), Table 1.
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', polyposisEscHandler);
+}
+
+
 // ─── GERMLINE UI ─────────────────────────────────────────────────────────────
 
 // ── Variant input rows ──

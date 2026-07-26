@@ -32,11 +32,7 @@ const dxCategories = {
         "MMR IHC-deficient sebaceous neoplasm plus ≥ 1 of: diagnosis ≤ 60y; ≥ 2 primary sebaceous neoplasms; or personal and/or family history (FDR/SDR) of a Lynch-associated cancer",
         "Amsterdam I/II family: ≥ 3 affected FDR/SDR with colorectal, endometrial, small bowel, ureter, or renal pelvis cancer over two successive generations, ≥ 1 diagnosed under 50y, and ≥ 1 an FDR of the other two",
         "Suspicious extracolonic tumour: cribriform-morular variant of papillary thyroid cancer; hepatoblastoma; desmoid ≤ 40y; or retinal pigment epithelium (RPE) hamartomas associated with FAP",
-        "Colorectal adenomas: ≥ 20 (any age); OR 10–19 diagnosed ≤ 60y; OR 5–9 with FAP/MAP-associated features or another qualifying age/family-history risk factor",
-        "Serrated (sessile) polyps: > 20 in the colon/rectum with ≥ 5 proximal to the rectum; OR ≥ 5 proximal to the rectum, all ≥ 5 mm with ≥ 2 measuring ≥ 10 mm",
-        "Fundic gland polyps: 100+ (carpeting); OR > 30 in the absence of PPI use with a qualifying family history of gastric cancer or fundic gland polyposis",
-        "Peutz-Jeghers-type hamartomas: ≥ 2; OR 1 with mucocutaneous pigmentation or a FDR/SDR with Peutz-Jeghers syndrome",
-        "Juvenile polyps: ≥ 5 in the colorectum; OR 1 with a family history of juvenile polyposis syndrome"
+        "Personal history of polyps with relevant additional risk factors — polyp histology must be confirmed by pathology. <a href='#' onclick='showPolyposisTable();return false;' style='text-decoration:underline;font-weight:600;'>View the full polyposis table (Table 1) →</a>"
     ],
     "Gastric": [
         "Diagnosis ≤ 50y of gastric adenocarcinoma, gastroesophageal junction adenocarcinoma, gastric in situ signet ring cells, or gastric pagetoid spread of signet ring cells",
