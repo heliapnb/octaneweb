@@ -40,7 +40,7 @@ const contextRationale = {
 // Recommended if the tumour was diagnosed ≤30y OR a supporting clinical context is met
 // (either one alone is sufficient). Their context lists and rationale live in the
 // contextGenes / contextRationale objects above.
-const ageOrContextGenes = ["PTEN", "CDKN2A", "RB1", "SMARCA4"];
+const ageOrContextGenes = ["PTEN", "CDKN2A", "RB1", "SMARCA4", "SMAD4", "NF1", "SMARCB1"];
 
 // Step 8: age ≤30 at diagnosis → REVIEW/MDT, else NOT OFFERED
 const step8Genes = [
