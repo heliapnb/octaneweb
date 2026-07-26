@@ -1,5 +1,17 @@
 // --- ELIGIBILITY DATA (Hereditary Cancer Testing Eligibility Criteria v4.0, June 2026) ---
 const dxCategories = {
+    // General Criteria for All Disease Sites — apply to any hereditary cancer
+    // syndrome / test, not tied to a specific tumour type (v4.0, criteria 1–8).
+    "General": [
+        "Empirical evidence or an established risk model estimates a ≥ 5% likelihood of a P/LP variant",
+        "A blood relative has a known P/LP variant in a cancer susceptibility gene on the approved gene list",
+        "Testing would aid systemic therapy planning — the patient may benefit from a targeted therapy based on germline variant status and meets all other criteria for that therapy",
+        "Previously uninformative testing was done with older methods (e.g. single-gene, no del/dup analysis) and updated testing has a reasonable likelihood of clinical benefit",
+        "Carrier of reproductive age, or planning a pregnancy, for a gene linked to an autosomal recessive condition — consider actionability, consanguinity, founder variants, carrier frequency, and penetrance; full testing of the gene is offered to the other genetic contributor",
+        "Clinical judgement supports testing in a family suspicious for hereditary risk, even when established criteria are not met",
+        "A clinically significant IHC deficiency (e.g. mismatch repair loss) suggests a hereditary cancer syndrome",
+        "A clinically significant variant identified on a tumour/somatic molecular report warrants confirmatory germline testing"
+    ],
     // Hereditary Breast, Ovarian, Prostate, Biliary Tract, and Pancreatic Cancers —
     // v4.0 presents these as one merged criteria list, so every cancer in the bundle
     // shows the full set of criteria below.
@@ -81,6 +93,8 @@ const dxCategories = {
 };
 
 const dxMapping = {
+    // General criteria that apply across all disease sites
+    "General Criteria — All Disease Sites": "General",
     // Hereditary Breast, Ovarian, Prostate, Biliary Tract, and Pancreatic Cancers
     // (all share the one merged v4.0 criteria list)
     "Breast Adenocarcinoma": "BreastOvarianProstateBiliaryPancreatic",
