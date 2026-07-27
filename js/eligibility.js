@@ -149,12 +149,130 @@ const dxMapping = {
     "Ganglioneuroma": "Neuroblastoma"
 };
 
+// --- SEARCH SYNONYMS ---
+// Everyday terms, abbreviations, and clinical shorthand that should surface a
+// diagnosis even when they do not appear in its name. Reviewed clinically —
+// add freely as colleagues report search misses.
+const dxSynonyms = {
+    "General Criteria — All Disease Sites": ["general criteria", "all disease sites", "any cancer", "any tumour", "known familial variant", "relative with variant", "cascade testing", "risk model", "systemic therapy", "clinical judgement", "tumour detected variant"],
+
+    "Breast Adenocarcinoma": ["breast cancer", "idc", "invasive ductal carcinoma", "ductal carcinoma", "invasive carcinoma of no special type", "no special type", "triple negative breast cancer", "triple negative", "tnbc", "male breast cancer", "breast"],
+    "Ovarian Serous Carcinoma": ["ovarian cancer", "epithelial ovarian cancer", "high grade serous carcinoma", "hgsoc", "ovary"],
+    "Fallopian Tube Cancer": ["fallopian tube carcinoma", "serous tubal intraepithelial carcinoma", "stic"],
+    "Peritoneal Cancer": ["primary peritoneal cancer", "peritoneum"],
+    "Prostate Cancer": ["prostate adenocarcinoma", "metastatic prostate cancer", "high risk prostate cancer", "gleason"],
+    "Pancreatic Duct Adenocarcinoma": ["pdac", "pancreatic cancer", "exocrine pancreatic cancer", "pancreas"],
+    "Pancreatic Adenocarcinoma": ["pancreatic cancer", "exocrine pancreatic cancer", "pancreas"],
+    "Cholangiocarcinoma": ["bile duct cancer", "biliary tract cancer", "intrahepatic cholangiocarcinoma"],
+    "Gallbladder Cancer": ["biliary tract cancer", "gall bladder"],
+    "Biliary Tract Cancer": ["bile duct cancer", "cholangiocarcinoma", "gallbladder cancer"],
+
+    "Lobular Breast Cancer": ["invasive lobular carcinoma", "ilc", "lobular carcinoma"],
+    "Diffuse Gastric Cancer": ["dgc", "hereditary diffuse gastric cancer", "hdgc", "signet ring cell carcinoma", "stomach cancer"],
+    "Gastric Adenocarcinoma": ["stomach cancer", "gastric cancer"],
+    "Gastroesophageal Junction Adenocarcinoma": ["gej adenocarcinoma", "oesophagogastric junction", "esophagogastric junction", "cardia"],
+
+    "Colon Adenocarcinoma": ["bowel cancer", "colon cancer", "large bowel cancer", "crc"],
+    "Colorectal Cancer": ["bowel cancer", "colon cancer", "rectal cancer", "large bowel cancer", "crc", "lynch syndrome", "mismatch repair deficient", "mmr deficient", "msi high", "polyposis", "familial adenomatous polyposis", "fap", "adenomas", "juvenile polyposis", "peutz jeghers", "serrated polyps", "sessile serrated", "fundic gland polyps", "hamartoma", "amsterdam criteria"],
+    "Endometrial Cancer": ["uterine cancer", "womb cancer", "endometrial carcinoma", "endometrium"],
+    "Sebaceous Neoplasm": ["sebaceous adenoma", "sebaceous carcinoma", "muir torre syndrome"],
+    "Small Bowel Cancer": ["small intestine cancer", "duodenal cancer"],
+
+    "Clear Cell Renal Cell Carcinoma": ["kidney cancer", "ccrcc", "renal cancer"],
+    "Papillary Renal Cell Carcinoma": ["kidney cancer", "renal cancer", "non clear cell"],
+    "Chromophobe Renal Cell Carcinoma": ["kidney cancer", "renal cancer", "non clear cell"],
+    "Renal Cell Carcinoma": ["kidney cancer", "rcc", "renal tumour", "renal cancer"],
+
+    "Gastrointestinal Stromal Tumour": ["gist", "sdh deficient gist"],
+
+    "Malignant Melanoma": ["skin cancer", "melanoma", "cutaneous melanoma"],
+    "Cutaneous Melanoma": ["skin cancer", "malignant melanoma", "mole"],
+    "Uveal Melanoma": ["eye melanoma", "ocular melanoma", "choroidal melanoma"],
+
+    "Pheochromocytoma": ["ppgl", "adrenal tumour", "phaeochromocytoma"],
+    "Paraganglioma": ["ppgl", "glomus tumour", "head and neck paraganglioma"],
+
+    "Glioblastoma": ["gbm", "glioblastoma multiforme", "brain cancer", "high grade glioma"],
+    "Glioma": ["brain cancer", "astrocytoma", "oligodendroglioma", "high grade glioma"],
+    "Brain Tumour": ["brain cancer", "cns tumour", "central nervous system tumour"],
+
+    "Lung Adenocarcinoma": ["lung cancer", "nsclc", "non small cell lung cancer", "egfr"],
+
+    "Soft Tissue Sarcoma": ["sarcoma", "sts"],
+    "Leiomyosarcoma": ["sarcoma", "lms"],
+    "Rhabdomyosarcoma": ["sarcoma", "rms"],
+    "Liposarcoma": ["sarcoma"],
+    "Osteosarcoma": ["bone cancer", "bone sarcoma", "sarcoma"],
+
+    "Medulloblastoma": ["brain cancer", "paediatric brain tumour", "pediatric brain tumour", "wnt", "shh"],
+    "Wilms Tumour": ["nephroblastoma", "kidney cancer", "paediatric kidney tumour", "pediatric kidney tumour"],
+    "Nephroblastoma": ["wilms tumour", "kidney cancer"],
+    "Neuroblastoma": ["neuroblastic tumour", "paediatric", "pediatric"],
+    "Ganglioneuroblastoma": ["neuroblastic tumour"],
+    "Ganglioneuroma": ["neuroblastic tumour"]
+};
+
 // --- ELIGIBILITY HELPERS (pure, no DOM) ---
 
+// Fold British/American spellings and punctuation so "brain tumor" matches
+// "Brain Tumour", "phaeochromocytoma" matches "Pheochromocytoma", etc.
+function normalizeSearchText(s) {
+    return (s || '')
+        .normalize('NFD').replace(/[̀-ͯ]/g, '') // strip accents: Māori → Maori
+        .toLowerCase()
+        .replace(/tumou?rs?\b/g, 'tumour')
+        .replace(/\bphaeo/g, 'pheo')
+        .replace(/\boesophag/g, 'esophag')
+        .replace(/\bpaediatric\b/g, 'pediatric')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// Matches on the diagnosis name first, then synonyms, then the criteria text
+// itself — so terms like "triple negative" or "signet ring" find their section.
 function searchDiagnoses(query) {
     if (!query) return [];
-    const val = query.toLowerCase();
-    return Object.keys(dxMapping).filter(d => d.toLowerCase().includes(val));
+    const q = normalizeSearchText(query);
+    if (!q) return [];
+
+    const scored = [];
+
+    Object.keys(dxMapping).forEach(dx => {
+        const name = normalizeSearchText(dx);
+
+        // 0-3: the diagnosis name itself
+        if (name === q)                { scored.push({ dx, score: 0, len: 0 }); return; }
+        if (name.startsWith(q))        { scored.push({ dx, score: 1, len: 0 }); return; }
+        if (name.includes(q))          { scored.push({ dx, score: 2, len: 0 }); return; }
+        // a wordy query that spells out the full diagnosis name
+        if ((' ' + q + ' ').includes(' ' + name + ' ')) { scored.push({ dx, score: 3, len: 0 }); return; }
+
+        // 4-6: synonyms — a longer matching synonym is a more specific match,
+        // so "eye melanoma" ranks Uveal Melanoma above generic "melanoma".
+        let best = null;
+        (dxSynonyms[dx] || []).forEach(s => {
+            const n = normalizeSearchText(s);
+            let score = null;
+            if (n === q)                 score = 4;
+            else if (n.includes(q))      score = 5;
+            // whole-word only, so a short abbreviation like "lms" cannot match
+            // inside an unrelated word such as "wilms"
+            else if ((' ' + q + ' ').includes(' ' + n + ' ')) score = 6;
+            if (score !== null && (!best || score < best.score || (score === best.score && n.length > best.len))) {
+                best = { score, len: n.length };
+            }
+        });
+        if (best) { scored.push({ dx, score: best.score, len: -best.len }); return; }
+
+        // 7: the criteria text itself
+        if (normalizeSearchText(getCriteriaForDx(dx).join(' ')).includes(q)) {
+            scored.push({ dx, score: 7, len: 0 });
+        }
+    });
+
+    scored.sort((a, b) => a.score - b.score || a.len - b.len);
+    return scored.map(r => r.dx);
 }
 
 function getCriteriaForDx(dx) {
