@@ -202,6 +202,44 @@ function renderHHM() {
     renderHHMResult();
 }
 
+// Plain-text restatement of the entered case, shown only in the printed PDF
+// (the dropdowns and checkboxes themselves are hidden by the print stylesheet).
+function renderHHMPrintSummary() {
+    const el = document.getElementById('hhmPrintSummary');
+    if (!el) return;
+    const s = hhmState;
+    if (!s.dx) { el.innerHTML = ''; return; }
+
+    const rows = [];
+    const add = (label, value) => { if (value) rows.push({ label, value }); };
+    const yn = v => v === true ? 'Yes' : (v === false ? 'No' : '');
+
+    const dx = hhmDiagnoses.find(d => d.key === s.dx);
+    add('Diagnosis', dx ? dx.label : s.dx);
+
+    if (s.dx === 'unaffected') {
+        add('Relative with bone-marrow variant suspicious of germline', yn(s.unaffRel));
+    } else if (s.dx !== 'multi') {
+        add('Age at diagnosis', { under40: '< 40 years', '40to49': '40–49 years', '50plus': '≥ 50 years' }[s.ageBand]);
+        add('Syndrome features present', yn(s.syndrome));
+        add('Relatives with a hematologic diagnosis',
+            { '0': 'None', '1': 'One relative', '2plus': 'Two or more relatives' }[s.relatives]);
+        add('Relative shares the presentation', yn(s.shared));
+        if (s.dx === 'aml' || s.dx === 'mpn') {
+            add('Relevant pathogenic variant in bone marrow', s.bmVariant ? 'Yes' : '');
+        }
+    }
+
+    const feats = hhmFeatures.filter(f => s.features[f.key]).map(f => f.label);
+    if (feats.length) add('Targeted history', feats.join('; '));
+
+    const specs = hhmSpecimenScenarios.filter(sc => s.specimen[sc.key]).map(sc => sc.label);
+    if (specs.length) add('Specimen scenario(s)', specs.join('; '));
+
+    el.innerHTML = '<div class="o-crit-label">Case summary</div>' +
+        rows.map(r => `<div class="o-psum-row"><div class="o-psum-label">${r.label}</div><div class="o-psum-value">${r.value}</div></div>`).join('');
+}
+
 function hhmSelectedGenes() {
     const genes = [];
     hhmFeatures.forEach(f => {
@@ -274,6 +312,7 @@ function renderHHMResult() {
     }
 
     res.innerHTML = baseHtml + extraHtml + specimenHtml;
+    renderHHMPrintSummary();
 }
 
 function resetHHM() {

@@ -579,6 +579,25 @@
       line-height: 1.55;
     }
     .o-hhm-extra-label { font-weight: 700; color: var(--ink); }
+
+    /* Print-only case summary (hidden on screen, shown in the PDF) */
+    .o-print-only { display: none; }
+    .o-psum-row {
+      display: flex;
+      gap: 14px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border-fade);
+      font-family: var(--font-body);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .o-psum-row:last-child { border-bottom: none; }
+    .o-psum-label {
+      flex: 0 0 190px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .o-psum-value { flex: 1; color: var(--ink-soft); }
     .o-hhm-result-note {
       margin-top: 12px;
       font-family: var(--font-body);
@@ -1096,9 +1115,16 @@
       .o-btn-row,
       #gVariantCards,
       #gEmptyState,
-      .o-vrow-remove {
+      .o-vrow-remove,
+      #hhmQuestions,
+      .o-hhm-dx,
+      #sec-hhm .o-hint {
         display: none !important;
       }
+
+      /* HHM: the live controls are hidden above, so print the plain-text
+         restatement of the entered case instead */
+      .o-print-only { display: block !important; }
 
       /* Header tightened, keeps brand */
       .o-header {
@@ -1250,6 +1276,8 @@
     </div>
 
     <div id="hhmQuestions" class="fade-in"></div>
+    <!-- Print-only restatement of the entered case (the live controls are hidden in print) -->
+    <div id="hhmPrintSummary" class="o-print-only"></div>
     <div id="hhmResult"></div>
     <div class="o-hhm-notes" id="hhmNotes"></div>
 
