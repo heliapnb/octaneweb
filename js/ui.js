@@ -76,6 +76,52 @@ function resetEligibility() {
 }
 
 
+// ─── HEMATOLOGIC MALIGNANCY (HHM) UI ─────────────────────────────────────────
+
+function initHHM() {
+    const dxSel = document.getElementById('hhmDx');
+    const famSel = document.getElementById('hhmFhx');
+    if (!dxSel || !famSel) return;
+    dxSel.innerHTML = '<option value="">Select diagnosis…</option>' +
+        hhmDiagnoses.map(d => `<option value="${d.key}">${d.label}${d.fn ? ` [${d.fn}]` : ''}</option>`).join('');
+    famSel.innerHTML = '<option value="">Select family history…</option>' +
+        hhmFamily.map(f => `<option value="${f.key}">${f.label}${f.fn ? ` [${f.fn}]` : ''}</option>`).join('');
+    const notes = document.getElementById('hhmNotes');
+    if (notes) {
+        notes.innerHTML = '<div class="o-crit-label">Definitions</div>' +
+            Object.entries(hhmFootnotes).map(([n, t]) => `<p class="o-hhm-note"><sup>${n}</sup>${t}</p>`).join('');
+    }
+}
+
+function runHHM() {
+    const res = document.getElementById('hhmResult');
+    if (!res) return;
+    const cell = computeHHM(document.getElementById('hhmDx').value, document.getElementById('hhmFhx').value);
+    if (!cell) { res.innerHTML = ''; return; }
+    if (cell.na) {
+        res.innerHTML = `<div class="o-verdict is-danger fade-in">
+            <span class="o-verdict-badge">N/A</span>
+            <span class="o-verdict-text">Does not meet criteria for a hereditary hematologic panel in this scenario.</span></div>`;
+        return;
+    }
+    const note = cell.note ? `<p class="o-hhm-result-note">${cell.note}</p>` : '';
+    res.innerHTML = `<div class="o-verdict is-success fade-in">
+        <span class="o-verdict-badge">Recommended Panel</span>
+        <span class="o-verdict-text">${cell.panel}</span></div>${note}`;
+}
+
+function resetHHM() {
+    const dx = document.getElementById('hhmDx');
+    const fam = document.getElementById('hhmFhx');
+    if (dx) dx.value = '';
+    if (fam) fam.value = '';
+    const res = document.getElementById('hhmResult');
+    if (res) res.innerHTML = '';
+}
+
+initHHM();
+
+
 // ─── POLYPOSIS TABLE (v4.0 Table 1) ──────────────────────────────────────────
 
 const POLYPOSIS_TABLE = [

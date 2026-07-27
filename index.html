@@ -490,6 +490,42 @@
       color: var(--ink);
     }
 
+    /* ─── HHM tab ──────────────────────────────────────────── */
+    .o-hhm-controls {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 760px) {
+      .o-hhm-controls { grid-template-columns: 1fr 1fr; gap: 24px; }
+    }
+    .o-input-row select.o-input {
+      cursor: pointer;
+      appearance: auto;
+      -webkit-appearance: auto;
+    }
+    .o-hhm-result-note {
+      margin-top: 12px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--ink-soft);
+      font-style: italic;
+      line-height: 1.55;
+    }
+    .o-hhm-notes {
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-soft);
+    }
+    .o-hhm-note {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--mute);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    .o-hhm-note sup { color: var(--ink-soft); font-weight: 700; margin-right: 2px; }
+
     /* ─── Germline 2-column layout ─────────────────────────── */
     .o-germline-grid {
       display: grid;
@@ -1061,6 +1097,7 @@
 <nav class="o-tabs">
   <button onclick="switchTab('eligibility')" id="tab-eligibility" class="o-tab on">CCO Eligibility</button>
   <button onclick="switchTab('germline')" id="tab-germline" class="o-tab">Germline Confirmation</button>
+  <button onclick="switchTab('hhm')" id="tab-hhm" class="o-tab">Hematologic Malignancies</button>
 </nav>
 
 <main class="o-main">
@@ -1122,10 +1159,42 @@
     </footer>
   </section>
 
+  <!-- ─── HEMATOLOGIC MALIGNANCIES ─────────────────────────── -->
+  <section id="sec-hhm" class="o-section is-hidden">
+    <div class="o-sh-row">
+      <h2 class="o-sh">Hereditary Hematologic Malignancy — Panel Selection</h2>
+      <button onclick="resetHHM()" class="o-reset">Reset</button>
+    </div>
+    <p class="o-hint">Select the patient's hematologic diagnosis and family history to see the recommended germline testing panel.</p>
+
+    <div class="o-hhm-controls">
+      <div>
+        <div class="o-crit-label">Personal history (diagnosis)</div>
+        <div class="o-input-row">
+          <select id="hhmDx" class="o-input" onchange="runHHM()"></select>
+        </div>
+      </div>
+      <div>
+        <div class="o-crit-label">Family history</div>
+        <div class="o-input-row">
+          <select id="hhmFhx" class="o-input" onchange="runHHM()"></select>
+        </div>
+      </div>
+    </div>
+
+    <div id="hhmResult"></div>
+    <div class="o-hhm-notes" id="hhmNotes"></div>
+
+    <footer style="margin: 24px auto 0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.5; border-top: 1px solid #e2e8f0;">
+      Based on the Hereditary Hematologic Malignancy (HHM) Genetic Testing summary.
+    </footer>
+  </section>
+
 </main>
 
 <script src="js/eligibility.js"></script>
 <script src="js/germline.js"></script>
+<script src="js/hematologic.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/app.js"></script>
 </body>
