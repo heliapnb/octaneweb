@@ -254,12 +254,14 @@ function renderHHMResult() {
     const s = hhmState;
 
     let baseHtml = '';
+    let notOffered = false; // when true, a specimen recommendation is irrelevant
     if (s.dx === 'unaffected') {
         if (s.unaffRel === true) {
             baseHtml = `<div class="o-verdict is-success fade-in">
                 <span class="o-verdict-badge">Targeted testing</span>
                 <span class="o-verdict-text">Panel testing is not routinely offered to unaffected individuals, but targeted testing for the relative's bone-marrow variant may be offered.</span></div>`;
         } else {
+            notOffered = true;
             baseHtml = `<div class="o-verdict is-danger fade-in">
                 <span class="o-verdict-badge">Not offered</span>
                 <span class="o-verdict-text">Panel testing is not typically offered for unaffected individuals.</span></div>`;
@@ -273,12 +275,14 @@ function renderHHMResult() {
     } else if (s.dx) {
         const col = s.dx === 'multi' ? 'A' : computeHHMColumn(s);
         if (col === 'NONE') {
+            notOffered = true;
             baseHtml = `<div class="o-verdict is-danger fade-in">
                 <span class="o-verdict-badge">Criteria not met</span>
                 <span class="o-verdict-text">This personal/family-history scenario does not meet criteria for hereditary hematologic testing.</span></div>`;
         } else if (col !== null) {
             const cell = computeHHM(s.dx, col);
             if (!cell || cell.na) {
+                notOffered = true;
                 baseHtml = `<div class="o-verdict is-danger fade-in">
                     <span class="o-verdict-badge">N/A</span>
                     <span class="o-verdict-text">No hereditary panel is indicated for this diagnosis at this history level.</span></div>`;
@@ -296,13 +300,14 @@ function renderHHMResult() {
     if (s.dx && s.dx !== 'unaffected') {
         const extra = hhmSelectedGenes();
         if (extra.length) {
-            extraHtml = `<div class="o-hhm-extra fade-in"><span class="o-hhm-extra-label">Also include based on targeted history:</span> ${extra.join(', ')}</div>`;
+            extraHtml = `<div class="o-hhm-extra fade-in"><span class="o-hhm-extra-label">If performing germline testing, it is recommended to include the following genes based on targeted history:</span> ${extra.join(', ')}</div>`;
         }
     }
 
-    // Specimen recommendation (all cases), highest-priority scenario wins
+    // Specimen recommendation, highest-priority scenario wins. Omitted when
+    // testing is not offered, since the specimen is irrelevant in that case.
     let specimenHtml = '';
-    const spec = computeHHMSpecimen(s.specimen);
+    const spec = notOffered ? null : computeHHMSpecimen(s.specimen);
     if (spec) {
         const counsel = spec.counsel ? `<p class="o-hhm-result-note">${HHM_SPECIMEN_COUNSEL}</p>` : '';
         const pref = spec.overridden
