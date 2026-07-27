@@ -156,11 +156,11 @@ const dxMapping = {
 const dxSynonyms = {
     "General Criteria — All Disease Sites": ["general criteria", "all disease sites", "any cancer", "any tumour", "known familial variant", "relative with variant", "cascade testing", "risk model", "systemic therapy", "clinical judgement", "tumour detected variant"],
 
-    "Breast Adenocarcinoma": ["breast cancer", "idc", "invasive ductal carcinoma", "ductal carcinoma", "invasive carcinoma of no special type", "no special type", "triple negative breast cancer", "triple negative", "tnbc", "male breast cancer", "breast"],
+    "Breast Adenocarcinoma": ["breast cancer", "idc", "invasive ductal carcinoma", "ductal carcinoma", "dcis", "ductal carcinoma in situ", "ilc", "invasive lobular carcinoma", "invasive carcinoma of no special type", "triple negative breast cancer", "triple negative", "tnbc", "male breast cancer", "breast"],
     "Ovarian Serous Carcinoma": ["ovarian cancer", "epithelial ovarian cancer", "high grade serous carcinoma", "hgsoc", "ovary"],
     "Fallopian Tube Cancer": ["fallopian tube carcinoma", "serous tubal intraepithelial carcinoma", "stic"],
     "Peritoneal Cancer": ["primary peritoneal cancer", "peritoneum"],
-    "Prostate Cancer": ["prostate adenocarcinoma", "metastatic prostate cancer", "high risk prostate cancer", "gleason"],
+    "Prostate Cancer": ["prostate adenocarcinoma", "metastatic prostate cancer", "high risk prostate cancer"],
     "Pancreatic Duct Adenocarcinoma": ["pdac", "pancreatic cancer", "exocrine pancreatic cancer", "pancreas"],
     "Pancreatic Adenocarcinoma": ["pancreatic cancer", "exocrine pancreatic cancer", "pancreas"],
     "Cholangiocarcinoma": ["bile duct cancer", "biliary tract cancer", "intrahepatic cholangiocarcinoma"],
