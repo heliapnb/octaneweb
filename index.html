@@ -491,13 +491,17 @@
     }
 
     /* ─── HHM tab ──────────────────────────────────────────── */
-    .o-hhm-controls {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
-    @media (min-width: 760px) {
-      .o-hhm-controls { grid-template-columns: 1fr 1fr; gap: 24px; }
+    .o-hhm-dx .o-input-row { max-width: 520px; }
+    .o-hhm-qblock { margin-top: 26px; }
+    .o-hhm-q { margin-top: 14px; }
+    .o-hhm-q .o-input-row { max-width: 520px; }
+    .o-hhm-q .o-yn { max-width: 520px; }
+    .o-hhm-qlabel {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.5;
+      margin-bottom: 8px;
     }
     .o-input-row select.o-input {
       cursor: pointer;
@@ -1167,21 +1171,14 @@
     </div>
     <p class="o-hint">Select the patient's hematologic diagnosis and family history to see the recommended germline testing panel.</p>
 
-    <div class="o-hhm-controls">
-      <div>
-        <div class="o-crit-label">Personal history (diagnosis)</div>
-        <div class="o-input-row">
-          <select id="hhmDx" class="o-input" onchange="runHHM()"></select>
-        </div>
-      </div>
-      <div>
-        <div class="o-crit-label">Family history</div>
-        <div class="o-input-row">
-          <select id="hhmFhx" class="o-input" onchange="runHHM()"></select>
-        </div>
+    <div class="o-hhm-dx">
+      <div class="o-crit-label">Diagnosis</div>
+      <div class="o-input-row">
+        <select id="hhmDx" class="o-input" onchange="setHHMDx(this.value)"></select>
       </div>
     </div>
 
+    <div id="hhmQuestions" class="fade-in"></div>
     <div id="hhmResult"></div>
     <div class="o-hhm-notes" id="hhmNotes"></div>
 

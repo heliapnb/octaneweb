@@ -78,30 +78,98 @@ function resetEligibility() {
 
 // ─── HEMATOLOGIC MALIGNANCY (HHM) UI ─────────────────────────────────────────
 
+let hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null };
+
 function initHHM() {
     const dxSel = document.getElementById('hhmDx');
-    const famSel = document.getElementById('hhmFhx');
-    if (!dxSel || !famSel) return;
+    if (!dxSel) return;
     dxSel.innerHTML = '<option value="">Select diagnosis…</option>' +
         hhmDiagnoses.map(d => `<option value="${d.key}">${d.label}${d.fn ? ` [${d.fn}]` : ''}</option>`).join('');
-    famSel.innerHTML = '<option value="">Select family history…</option>' +
-        hhmFamily.map(f => `<option value="${f.key}">${f.label}${f.fn ? ` [${f.fn}]` : ''}</option>`).join('');
+    dxSel.value = hhmState.dx;
     const notes = document.getElementById('hhmNotes');
     if (notes) {
         notes.innerHTML = '<div class="o-crit-label">Definitions</div>' +
             Object.entries(hhmFootnotes).map(([n, t]) => `<p class="o-hhm-note"><sup>${n}</sup>${t}</p>`).join('');
     }
+    renderHHM();
 }
 
-function runHHM() {
+// state setters (clear dependent answers when a parent answer changes)
+function setHHMDx(v)        { hhmState.dx = v; renderHHM(); }
+function setHHMAge(v)       { hhmState.ageBand = v; if (v !== '40to49') hhmState.syndrome = null; renderHHM(); }
+function setHHMSyndrome(v)  { hhmState.syndrome = v; renderHHM(); }
+function setHHMRelatives(v) { hhmState.relatives = v; if (v !== '1') hhmState.shared = null; renderHHM(); }
+function setHHMShared(v)    { hhmState.shared = v; renderHHM(); }
+
+function hhmSelect(label, setter, opts, cur) {
+    const options = '<option value="">Select…</option>' +
+        opts.map(([v, t]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${t}</option>`).join('');
+    return `<div class="o-hhm-q"><div class="o-hhm-qlabel">${label}</div>
+        <div class="o-input-row"><select class="o-input" onchange="${setter}(this.value)">${options}</select></div></div>`;
+}
+
+function hhmYesNo(label, setter, cur) {
+    return `<div class="o-hhm-q"><div class="o-hhm-qlabel">${label}</div>
+        <div class="o-yn">
+          <button class="o-yn-btn${cur === true ? ' is-yes-on' : ''}" onclick="${setter}(true)">Yes</button>
+          <button class="o-yn-btn${cur === false ? ' is-no-on' : ''}" onclick="${setter}(false)">No</button>
+        </div></div>`;
+}
+
+function renderHHM() {
+    const q = document.getElementById('hhmQuestions');
+    if (!q) return;
+    const s = hhmState;
+
+    if (!s.dx) { q.innerHTML = ''; document.getElementById('hhmResult').innerHTML = ''; return; }
+
+    // "Any hematologic malignancy + 2 other cancers" qualifies on its own — no history needed.
+    if (s.dx === 'multi') {
+        q.innerHTML = `<div class="o-hhm-qblock"><p class="o-hhm-qlabel" style="margin:0;">Any hematologic malignancy with ≥ 2 other primary cancers meets criteria on its own — personal and family history are not required.</p></div>`;
+        renderHHMResult();
+        return;
+    }
+
+    let html = '<div class="o-hhm-qblock"><div class="o-crit-label">Personal history</div>';
+    html += hhmSelect('Age at diagnosis', 'setHHMAge',
+        [['under40', '< 40 years'], ['40to49', '40–49 years'], ['50plus', '≥ 50 years']], s.ageBand);
+    if (s.ageBand === '40to49') {
+        html += hhmYesNo('Are syndrome features present? (chromosome 7 aberrations, chronic low blood counts, immunodeficiency, cutaneous/mucocutaneous findings, or congenital anomalies)', 'setHHMSyndrome', s.syndrome);
+    }
+    html += '</div>';
+
+    html += '<div class="o-hhm-qblock"><div class="o-crit-label">Family history</div>';
+    html += hhmSelect('First/second-degree relatives with a hematologic diagnosis', 'setHHMRelatives',
+        [['0', 'None'], ['1', 'One relative'], ['2plus', 'Two or more relatives']], s.relatives);
+    if (s.relatives === '1') {
+        html += hhmYesNo('Does that relative share the clinical presentation / hematologic diagnosis?', 'setHHMShared', s.shared);
+    }
+    html += '</div>';
+
+    q.innerHTML = html;
+    renderHHMResult();
+}
+
+function renderHHMResult() {
     const res = document.getElementById('hhmResult');
     if (!res) return;
-    const cell = computeHHM(document.getElementById('hhmDx').value, document.getElementById('hhmFhx').value);
-    if (!cell) { res.innerHTML = ''; return; }
-    if (cell.na) {
+    const s = hhmState;
+
+    const col = s.dx === 'multi' ? 'A' : computeHHMColumn(s);
+    if (!s.dx || col === null) { res.innerHTML = ''; return; }
+
+    if (col === 'NONE') {
+        res.innerHTML = `<div class="o-verdict is-danger fade-in">
+            <span class="o-verdict-badge">Criteria not met</span>
+            <span class="o-verdict-text">This personal/family-history scenario does not meet criteria for hereditary hematologic testing.</span></div>`;
+        return;
+    }
+
+    const cell = computeHHM(s.dx, col);
+    if (!cell || cell.na) {
         res.innerHTML = `<div class="o-verdict is-danger fade-in">
             <span class="o-verdict-badge">N/A</span>
-            <span class="o-verdict-text">Does not meet criteria for a hereditary hematologic panel in this scenario.</span></div>`;
+            <span class="o-verdict-text">No hereditary panel is indicated for this diagnosis at this history level.</span></div>`;
         return;
     }
     const note = cell.note ? `<p class="o-hhm-result-note">${cell.note}</p>` : '';
@@ -111,12 +179,10 @@ function runHHM() {
 }
 
 function resetHHM() {
-    const dx = document.getElementById('hhmDx');
-    const fam = document.getElementById('hhmFhx');
-    if (dx) dx.value = '';
-    if (fam) fam.value = '';
-    const res = document.getElementById('hhmResult');
-    if (res) res.innerHTML = '';
+    hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null };
+    const dxSel = document.getElementById('hhmDx');
+    if (dxSel) dxSel.value = '';
+    renderHHM();
 }
 
 initHHM();

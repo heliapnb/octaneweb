@@ -53,3 +53,27 @@ function computeHHM(dxKey, famKey) {
     if (!row) return null;
     return row[famKey] || null;
 }
+
+// Derive the family-history column (A/B/C) from targeted history answers.
+// Returns 'A' | 'B' | 'C' when determinable, 'NONE' when the scenario meets
+// no criteria, or null when more answers are still needed.
+//   state = { ageBand:'under40'|'40to49'|'50plus', syndrome:true|false|null,
+//             relatives:'0'|'1'|'2plus', shared:true|false|null }
+function computeHHMColumn(state) {
+    const { ageBand, syndrome, relatives, shared } = state;
+    if (!relatives) return null;
+    if (relatives === '2plus') return 'C';
+    if (relatives === '1') {
+        if (shared === null || shared === undefined) return null;
+        if (shared === true) return 'B';
+        // shared === false → no relevant family history; fall through to personal-history logic
+    }
+    // No relevant family history (0 relatives, or 1 that does not share) → column A depends on personal history
+    if (!ageBand) return null;
+    if (ageBand === 'under40') return 'A';
+    if (ageBand === '40to49') {
+        if (syndrome === null || syndrome === undefined) return null;
+        return syndrome ? 'A' : 'NONE';
+    }
+    return 'NONE'; // ≥50 with no qualifying family history
+}
