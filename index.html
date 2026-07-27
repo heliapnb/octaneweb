@@ -1099,8 +1099,8 @@
 </header>
 
 <nav class="o-tabs">
-  <button onclick="switchTab('eligibility')" id="tab-eligibility" class="o-tab on">CCO Eligibility</button>
-  <button onclick="switchTab('germline')" id="tab-germline" class="o-tab">Germline Confirmation</button>
+  <button onclick="switchTab('eligibility')" id="tab-eligibility" class="o-tab on">CCO Eligibility Criteria for Germline Testing</button>
+  <button onclick="switchTab('germline')" id="tab-germline" class="o-tab">Solid Tumour Variants — Germline Confirmation</button>
   <button onclick="switchTab('hhm')" id="tab-hhm" class="o-tab">Hematologic Malignancies</button>
 </nav>
 
@@ -1110,7 +1110,7 @@
   <section id="sec-eligibility" class="o-section">
     <div class="o-lbl">Patient's Primary Diagnosis</div>
     <div class="o-input-row">
-      <input type="text" id="cancerSearch" class="o-input" placeholder="Search (e.g. Colon, Breast, Melanoma…)" autocomplete="off">
+      <input type="text" id="cancerSearch" class="o-input" placeholder="Enter patient's primary diagnosis to see CCO eligibility criteria for germline testing (e.g. Colon, Breast…)" autocomplete="off">
     </div>
     <div id="searchResults" class="o-search-results hidden"></div>
 
@@ -1134,7 +1134,7 @@
       <!-- Left: Input + per-variant cards -->
       <div>
         <div class="o-lbl">Tumour Variant(s)</div>
-        <p class="o-hint">Enter the gene name and the cDNA notation for each variant. Example: <span class="gene">BRCA1</span> <span class="mono">c.5266dupC</span></p>
+        <p class="o-hint">Enter the gene name and the cDNA notation for each variant to see the recommendations for germline confirmation. Example: <span class="gene">BRCA1</span> <span class="mono">c.5266dupC</span></p>
         <div id="gVariantRows"></div>
         <button onclick="addVariantRow()" class="o-add-btn">+ Add another variant</button>
         <div class="o-btn-row">
