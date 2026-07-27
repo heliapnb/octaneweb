@@ -3,19 +3,31 @@
 const sInput = document.getElementById('cancerSearch');
 const sRes = document.getElementById('searchResults');
 
-sInput.addEventListener('input', () => {
-    const val = sInput.value;
+// Show the diagnosis list on focus/click (full list) and filter it as the user types.
+function renderDxSuggestions() {
+    const val = sInput.value.trim();
+    const matches = val ? searchDiagnoses(val) : Object.keys(dxMapping);
     sRes.innerHTML = '';
-    if (!val) { sRes.classList.add('hidden'); return; }
-    const matches = searchDiagnoses(val);
     matches.forEach(m => {
         const d = document.createElement('div');
         d.className = 'o-search-item';
         d.textContent = m;
-        d.onclick = () => selectDx(m);
+        // mousedown fires before the input's blur, so the click always registers
+        d.onmousedown = (e) => { e.preventDefault(); selectDx(m); };
         sRes.appendChild(d);
     });
     sRes.classList.toggle('hidden', !matches.length);
+}
+
+sInput.addEventListener('input', renderDxSuggestions);
+sInput.addEventListener('focus', renderDxSuggestions);
+sInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') sRes.classList.add('hidden');
+});
+
+// Close the list when clicking outside the search box
+document.addEventListener('mousedown', (e) => {
+    if (!sRes.contains(e.target) && e.target !== sInput) sRes.classList.add('hidden');
 });
 
 function selectDx(dx) {
@@ -395,11 +407,82 @@ function showPolyposisTable() {
 function buildVariantRowHtml() {
     return `
         <div class="o-vrow" data-vrow>
-            <input type="text" class="o-vrow-input gene-field" placeholder="GENE" data-gene autocomplete="off">
+            <div class="o-gene-wrap">
+                <input type="text" class="o-vrow-input gene-field" placeholder="GENE" data-gene autocomplete="off"
+                       onfocus="showGeneSuggest(this)" oninput="showGeneSuggest(this)" onkeydown="geneSuggestKey(event, this)">
+                <div class="o-gene-suggest hidden" data-gene-suggest></div>
+            </div>
             <input type="text" class="o-vrow-input cdna-field" placeholder="c.xxxxx" data-coding oninput="normalizeCDNAInput(this)" autocomplete="off">
             <button class="o-vrow-remove" onclick="removeVariantRow(this)" title="Remove variant" aria-label="Remove variant">×</button>
         </div>`;
 }
+
+// ── Gene autocomplete ──
+// Opens on click/focus with the full gene list, filters as the user types.
+
+function showGeneSuggest(input) {
+    const box = input.parentElement.querySelector('[data-gene-suggest]');
+    if (!box) return;
+    const val = input.value.trim().toUpperCase();
+    const matches = val
+        ? allGenes.filter(g => g.toUpperCase().startsWith(val)).concat(
+            allGenes.filter(g => !g.toUpperCase().startsWith(val) && g.toUpperCase().includes(val)))
+        : allGenes.slice();
+    if (!matches.length) { hideGeneSuggest(box); return; }
+    box.innerHTML = matches.map(g =>
+        `<div class="o-gene-suggest-item" onmousedown="pickGene(event, this)">${g}</div>`).join('');
+    box.classList.remove('hidden');
+}
+
+function hideGeneSuggest(box) {
+    if (!box) return;
+    box.classList.add('hidden');
+    box.innerHTML = '';
+}
+
+function pickGene(e, item) {
+    e.preventDefault(); // keep focus off the list so blur doesn't race the click
+    const wrap = item.closest('.o-gene-wrap');
+    const input = wrap.querySelector('[data-gene]');
+    input.value = item.textContent;
+    hideGeneSuggest(wrap.querySelector('[data-gene-suggest]'));
+    const cdna = wrap.closest('[data-vrow]').querySelector('[data-coding]');
+    if (cdna) cdna.focus();
+}
+
+function geneSuggestKey(e, input) {
+    const box = input.parentElement.querySelector('[data-gene-suggest]');
+    if (!box || box.classList.contains('hidden')) return;
+    const items = [...box.querySelectorAll('.o-gene-suggest-item')];
+    if (!items.length) return;
+    let idx = items.findIndex(i => i.classList.contains('is-active'));
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        idx = e.key === 'ArrowDown'
+            ? (idx + 1) % items.length
+            : (idx <= 0 ? items.length - 1 : idx - 1);
+        items.forEach(i => i.classList.remove('is-active'));
+        items[idx].classList.add('is-active');
+        items[idx].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const pick = idx >= 0 ? items[idx] : items[0];
+        input.value = pick.textContent;
+        hideGeneSuggest(box);
+        const cdna = input.closest('[data-vrow]').querySelector('[data-coding]');
+        if (cdna) cdna.focus();
+    } else if (e.key === 'Escape') {
+        hideGeneSuggest(box);
+    }
+}
+
+// Close any open gene list when clicking elsewhere
+document.addEventListener('mousedown', (e) => {
+    document.querySelectorAll('[data-gene-suggest]').forEach(box => {
+        if (!box.classList.contains('hidden') && !box.parentElement.contains(e.target)) hideGeneSuggest(box);
+    });
+});
 
 // Normalize cDNA notation to ClinVar's expected case:
 // - lowercase everywhere by default (so "c." prefix and operators

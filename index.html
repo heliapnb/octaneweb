@@ -240,12 +240,50 @@
       color: var(--mute-light);
       font-style: italic;
     }
-    .o-vrow-input.gene-field {
+    .o-gene-wrap {
+      position: relative;
       flex: 0 0 130px;
+      display: flex;
+    }
+    .o-vrow-input.gene-field {
+      flex: 1;
+      width: 100%;
+      min-width: 0;
       font-style: italic;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+    }
+    .o-gene-suggest {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 100%;
+      width: max-content;
+      max-width: 240px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-top: none;
+      max-height: 260px;
+      overflow-y: auto;
+      z-index: 60;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+    .o-gene-suggest-item {
+      padding: 9px 14px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-style: italic;
+      font-weight: 600;
+      color: var(--ink-soft);
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-fade);
+    }
+    .o-gene-suggest-item:last-child { border-bottom: none; }
+    .o-gene-suggest-item:hover,
+    .o-gene-suggest-item.is-active {
+      background: var(--bg-soft);
+      color: var(--ink);
     }
     .o-vrow-input.cdna-field {
       flex: 1;
