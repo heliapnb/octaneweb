@@ -8,8 +8,32 @@ const hhmDiagnoses = [
     { key: "mpn",      label: "Myeloproliferative Neoplasm", fn: 4 },
     { key: "lymphoma", label: "Lymphoma (Hodgkin / Non-Hodgkin)" },
     { key: "lymphoid", label: "Other Lymphoid malignancy (ALL, CLL, myeloma)" },
-    { key: "multi",    label: "Any hematologic malignancy + 2 other cancers" }
+    { key: "multi",    label: "Any hematologic malignancy + 2 other cancers" },
+    { key: "unaffected", label: "Unaffected individual (no personal hematologic diagnosis)" }
 ];
+
+// Myeloid malignancy with one of these relevant pathogenic variants in the bone
+// marrow → IBMF Panel (196 genes).
+const hhmMyeloidBMVariantGenes = ["ANKRD26", "CEBPA", "DDX41", "ETV6", "GATA2", "RUNX1", "TERC", "TERT"];
+
+// Specimen-type recommendation scenarios (shown for all cases).
+const hhmSpecimenScenarios = [
+    { key: "skin_allo",      label: "Patient had an allogeneic (donor) stem cell transplant", specimen: "skin" },
+    { key: "skin_ooc",       label: "Active leukemia (AML/MDS, ALL), MPN, or bone marrow failure (BMF) — testing performed out of country (OOC)", specimen: "skin" },
+    { key: "skin_lymph4",    label: "Active lymphoid malignancy, stage IV with bone marrow involvement", specimen: "skin" },
+    { key: "buccal_lymph",   label: "Active lymphoma (stage I, II, III) — testing performed out of country (OOC)", specimen: "buccal" },
+    { key: "blood_remission", label: "Hematologic malignancy now in remission", specimen: "blood" },
+    { key: "blood_chronic",  label: "Chronic leukemia, myeloma, or other hematologic disorder (e.g. MGUS, lymphocytosis) — testing performed in Ontario (ON)", specimen: "blood" },
+    { key: "blood_auto",     label: "Patient had an autologous stem cell transplant", specimen: "blood" }
+];
+
+const hhmSpecimenOutput = {
+    skin:   { name: "Skin biopsy (cultured fibroblasts)", counsel: false },
+    buccal: { name: "Buccal swab", counsel: true },
+    blood:  { name: "Peripheral blood", counsel: true }
+};
+
+const HHM_SPECIMEN_COUNSEL = "Counsel the patient that testing may need to be repeated on a skin biopsy.";
 
 const hhmFamily = [
     { key: "A", label: "No family history, diagnosed <40y (or <50y with syndrome features)", fn: 3 },

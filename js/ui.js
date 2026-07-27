@@ -78,7 +78,7 @@ function resetEligibility() {
 
 // ─── HEMATOLOGIC MALIGNANCY (HHM) UI ─────────────────────────────────────────
 
-let hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null, features: {} };
+let hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null, features: {}, bmVariant: null, unaffRel: null, specimen: '' };
 
 function initHHM() {
     const dxSel = document.getElementById('hhmDx');
@@ -101,6 +101,9 @@ function setHHMSyndrome(v)  { hhmState.syndrome = v; renderHHM(); }
 function setHHMRelatives(v) { hhmState.relatives = v; if (v !== '1') hhmState.shared = null; renderHHM(); }
 function setHHMShared(v)    { hhmState.shared = v; renderHHM(); }
 function toggleHHMFeature(key, checked) { hhmState.features[key] = checked; renderHHMResult(); }
+function setHHMBMVariant(v) { hhmState.bmVariant = v; renderHHMResult(); }
+function setHHMUnaffRel(v)  { hhmState.unaffRel = v; renderHHM(); }
+function setHHMSpecimen(v)  { hhmState.specimen = v; renderHHMResult(); }
 
 function hhmSelect(label, setter, opts, cur) {
     const options = '<option value="">Select…</option>' +
@@ -117,6 +120,22 @@ function hhmYesNo(label, setter, cur) {
         </div></div>`;
 }
 
+function hhmFeatureBlock() {
+    return '<div class="o-hhm-qblock"><div class="o-crit-label">Targeted personal or family history</div>'
+        + '<p class="o-hint" style="margin-bottom:8px;">Check any feature present in the patient or a blood relative — each adds genes to the recommendation.</p>'
+        + hhmFeatures.map(f =>
+            `<label class="o-hhm-check"><input type="checkbox" ${hhmState.features[f.key] ? 'checked' : ''} onchange="toggleHHMFeature('${f.key}', this.checked)"><span>${f.label}</span></label>`
+          ).join('')
+        + '</div>';
+}
+
+function hhmSpecimenBlock() {
+    return '<div class="o-hhm-qblock"><div class="o-crit-label">Specimen type</div>'
+        + hhmSelect('Clinical scenario for specimen selection (if applicable)', 'setHHMSpecimen',
+            hhmSpecimenScenarios.map(sc => [sc.key, sc.label]), hhmState.specimen)
+        + '</div>';
+}
+
 function renderHHM() {
     const q = document.getElementById('hhmQuestions');
     if (!q) return;
@@ -125,8 +144,18 @@ function renderHHM() {
     if (!s.dx) { q.innerHTML = ''; document.getElementById('hhmResult').innerHTML = ''; return; }
 
     let html = '';
+
+    if (s.dx === 'unaffected') {
+        html += '<div class="o-hhm-qblock"><div class="o-crit-label">Unaffected individual</div>';
+        html += hhmYesNo('Does a close relative have a bone-marrow variant that is suspicious of being germline?', 'setHHMUnaffRel', s.unaffRel);
+        html += '</div>';
+        html += hhmSpecimenBlock();
+        q.innerHTML = html;
+        renderHHMResult();
+        return;
+    }
+
     if (s.dx === 'multi') {
-        // "Any hematologic malignancy + 2 other cancers" qualifies on its own — no history needed.
         html += `<div class="o-hhm-qblock"><p class="o-hhm-qlabel" style="margin:0;">Any hematologic malignancy with ≥ 2 other primary cancers meets criteria on its own — personal and family history are not required.</p></div>`;
     } else {
         html += '<div class="o-hhm-qblock"><div class="o-crit-label">Personal history</div>';
@@ -144,15 +173,16 @@ function renderHHM() {
             html += hhmYesNo('Does that relative share the clinical presentation / hematologic diagnosis?', 'setHHMShared', s.shared);
         }
         html += '</div>';
+
+        if (s.dx === 'aml' || s.dx === 'mpn') {
+            html += '<div class="o-hhm-qblock"><div class="o-crit-label">Bone marrow molecular findings</div>';
+            html += `<label class="o-hhm-check"><input type="checkbox" ${s.bmVariant ? 'checked' : ''} onchange="setHHMBMVariant(this.checked)"><span>A relevant pathogenic variant was detected in the bone marrow (e.g. ${hhmMyeloidBMVariantGenes.join(', ')})</span></label>`;
+            html += '</div>';
+        }
     }
 
-    // Targeted personal/family-history features — shown for every case
-    html += '<div class="o-hhm-qblock"><div class="o-crit-label">Targeted personal or family history</div>';
-    html += '<p class="o-hint" style="margin-bottom:8px;">Check any feature present in the patient or a blood relative — each adds genes to the recommendation.</p>';
-    html += hhmFeatures.map(f =>
-        `<label class="o-hhm-check"><input type="checkbox" ${s.features[f.key] ? 'checked' : ''} onchange="toggleHHMFeature('${f.key}', this.checked)"><span>${f.label}</span></label>`
-    ).join('');
-    html += '</div>';
+    html += hhmFeatureBlock();
+    html += hhmSpecimenBlock();
 
     q.innerHTML = html;
     renderHHMResult();
@@ -172,7 +202,23 @@ function renderHHMResult() {
     const s = hhmState;
 
     let baseHtml = '';
-    if (s.dx) {
+    if (s.dx === 'unaffected') {
+        if (s.unaffRel === true) {
+            baseHtml = `<div class="o-verdict is-success fade-in">
+                <span class="o-verdict-badge">Targeted testing</span>
+                <span class="o-verdict-text">Panel testing is not routinely offered to unaffected individuals, but targeted testing for the relative's bone-marrow variant may be offered.</span></div>`;
+        } else {
+            baseHtml = `<div class="o-verdict is-danger fade-in">
+                <span class="o-verdict-badge">Not offered</span>
+                <span class="o-verdict-text">Panel testing is not typically offered for unaffected individuals.</span></div>`;
+        }
+    } else if ((s.dx === 'aml' || s.dx === 'mpn') && s.bmVariant === true) {
+        // Myeloid malignancy with a relevant bone-marrow variant → IBMF (independent trigger)
+        baseHtml = `<div class="o-verdict is-success fade-in">
+            <span class="o-verdict-badge">Recommended Panel</span>
+            <span class="o-verdict-text">${HHM_IBMF}</span></div>
+            <p class="o-hhm-result-note">Relevant pathogenic variant detected in the bone marrow of a myeloid malignancy.</p>`;
+    } else if (s.dx) {
         const col = s.dx === 'multi' ? 'A' : computeHHMColumn(s);
         if (col === 'NONE') {
             baseHtml = `<div class="o-verdict is-danger fade-in">
@@ -193,16 +239,31 @@ function renderHHMResult() {
         }
     }
 
-    const extra = hhmSelectedGenes();
-    const extraHtml = extra.length
-        ? `<div class="o-hhm-extra fade-in"><span class="o-hhm-extra-label">Also include based on targeted history:</span> ${extra.join(', ')}</div>`
-        : '';
+    // Feature-driven gene additions (not for unaffected individuals)
+    let extraHtml = '';
+    if (s.dx && s.dx !== 'unaffected') {
+        const extra = hhmSelectedGenes();
+        if (extra.length) {
+            extraHtml = `<div class="o-hhm-extra fade-in"><span class="o-hhm-extra-label">Also include based on targeted history:</span> ${extra.join(', ')}</div>`;
+        }
+    }
 
-    res.innerHTML = baseHtml + extraHtml;
+    // Specimen recommendation (all cases)
+    let specimenHtml = '';
+    if (s.specimen) {
+        const sc = hhmSpecimenScenarios.find(x => x.key === s.specimen);
+        if (sc) {
+            const out = hhmSpecimenOutput[sc.specimen];
+            const counsel = out.counsel ? `<p class="o-hhm-result-note">${HHM_SPECIMEN_COUNSEL}</p>` : '';
+            specimenHtml = `<div class="o-hhm-extra fade-in"><span class="o-hhm-extra-label">Recommended specimen:</span> ${out.name}</div>${counsel}`;
+        }
+    }
+
+    res.innerHTML = baseHtml + extraHtml + specimenHtml;
 }
 
 function resetHHM() {
-    hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null, features: {} };
+    hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null, features: {}, bmVariant: null, unaffRel: null, specimen: '' };
     const dxSel = document.getElementById('hhmDx');
     if (dxSel) dxSel.value = '';
     renderHHM();
