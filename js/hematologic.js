@@ -24,6 +24,16 @@ const hhmFootnotes = {
     4: "MPN includes ET, PRV, PMF, CMML."
 };
 
+// Targeted personal/family-history features shown for every case. Checking one
+// appends its associated genes/syndromes to the recommendation.
+const hhmFeatures = [
+    { key: "bleeding",   label: "Easy bleeding or bruising (e.g. frequent nosebleeds, gum bleeding, heavy menses)", genes: ["RUNX1", "ETV6", "ANKRD26"] },
+    { key: "infection",  label: "Recurrent or persistent infections / immunodeficiency (e.g. infections difficult to treat or not responsive to treatment)", genes: ["GATA2", "IKZF1", "WAS", "SH2D1A", "Bloom syndrome", "A-T"] },
+    { key: "hearing",    label: "Hearing loss (e.g. sensorineural hearing loss)", genes: ["GATA2", "MECOM"] },
+    { key: "skin",       label: "Skin or hair findings (e.g. lighter/darker skin patches, eczema, early greying, dysplastic fingernails)", genes: ["Telomere biology disorders", "Fanconi anemia", "CMMRD"] },
+    { key: "congenital", label: "Congenital anomalies (e.g. characteristic facial features, heart/kidney/bone differences, developmental delay)", genes: ["Fanconi anemia", "Diamond Blackfan anemia", "Shwachman-Diamond syndrome", "RASopathies"] }
+];
+
 const HHM_IBMF = "IBMF Panel (196 genes)";
 const HHM_COMP = "Comprehensive Cancer Panel (76 genes)";
 const HHM_MPN_NOTE = "Custom panel: include MPN genes plus the Comprehensive Cancer Panel (76 genes).";

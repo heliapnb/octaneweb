@@ -508,6 +508,39 @@
       appearance: auto;
       -webkit-appearance: auto;
     }
+    .o-hhm-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border-fade);
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.5;
+      cursor: pointer;
+      max-width: 760px;
+    }
+    .o-hhm-check:last-child { border-bottom: none; }
+    .o-hhm-check input {
+      margin-top: 3px;
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--ink);
+    }
+    .o-hhm-extra {
+      margin-top: 14px;
+      padding: 14px 18px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border-soft);
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+    }
+    .o-hhm-extra-label { font-weight: 700; color: var(--ink); }
     .o-hhm-result-note {
       margin-top: 12px;
       font-family: var(--font-body);
