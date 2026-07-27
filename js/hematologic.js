@@ -35,6 +35,27 @@ const hhmSpecimenOutput = {
 
 const HHM_SPECIMEN_COUNSEL = "Counsel the patient that testing may need to be repeated on a skin biopsy.";
 
+// Specimen priority: skin biopsy is the most definitive, then buccal, then blood.
+// If any skin or buccal scenario applies, it is preferred over blood even when
+// blood scenarios are also present.
+const HHM_SPECIMEN_PRIORITY = ["skin", "buccal", "blood"];
+
+// selected = { scenarioKey: true, ... } → { type, name, counsel, overridden }
+function computeHHMSpecimen(selected) {
+    const types = new Set();
+    hhmSpecimenScenarios.forEach(sc => { if (selected[sc.key]) types.add(sc.specimen); });
+    if (!types.size) return null;
+    const type = HHM_SPECIMEN_PRIORITY.find(t => types.has(t));
+    const out = hhmSpecimenOutput[type];
+    return {
+        type,
+        name: out.name,
+        counsel: out.counsel,
+        // true when a lower-priority scenario was also selected but superseded
+        overridden: types.size > 1
+    };
+}
+
 const hhmFamily = [
     { key: "A", label: "No family history, diagnosed <40y (or <50y with syndrome features)", fn: 3 },
     { key: "B", label: "One FDR with a shared clinical presentation / hematologic diagnosis" },

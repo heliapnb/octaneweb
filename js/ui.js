@@ -78,7 +78,7 @@ function resetEligibility() {
 
 // ─── HEMATOLOGIC MALIGNANCY (HHM) UI ─────────────────────────────────────────
 
-let hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null, features: {}, bmVariant: null, unaffRel: null, specimen: '' };
+let hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null, features: {}, bmVariant: null, unaffRel: null, specimen: {} };
 
 function initHHM() {
     const dxSel = document.getElementById('hhmDx');
@@ -103,7 +103,7 @@ function setHHMShared(v)    { hhmState.shared = v; renderHHM(); }
 function toggleHHMFeature(key, checked) { hhmState.features[key] = checked; renderHHMResult(); }
 function setHHMBMVariant(v) { hhmState.bmVariant = v; renderHHMResult(); }
 function setHHMUnaffRel(v)  { hhmState.unaffRel = v; renderHHM(); }
-function setHHMSpecimen(v)  { hhmState.specimen = v; renderHHMResult(); }
+function toggleHHMSpecimen(key, checked) { hhmState.specimen[key] = checked; renderHHMResult(); }
 
 function hhmSelect(label, setter, opts, cur) {
     const options = '<option value="">Select…</option>' +
@@ -131,8 +131,10 @@ function hhmFeatureBlock() {
 
 function hhmSpecimenBlock() {
     return '<div class="o-hhm-qblock"><div class="o-crit-label">Specimen type</div>'
-        + hhmSelect('Clinical scenario for specimen selection (if applicable)', 'setHHMSpecimen',
-            hhmSpecimenScenarios.map(sc => [sc.key, sc.label]), hhmState.specimen)
+        + '<p class="o-hint" style="margin-bottom:8px;">Check all that apply. If a skin-biopsy or buccal scenario is present alongside a blood scenario, the skin biopsy or buccal swab is preferred.</p>'
+        + hhmSpecimenScenarios.map(sc =>
+            `<label class="o-hhm-check"><input type="checkbox" ${hhmState.specimen[sc.key] ? 'checked' : ''} onchange="toggleHHMSpecimen('${sc.key}', this.checked)"><span>${sc.label}</span></label>`
+          ).join('')
         + '</div>';
 }
 
@@ -248,22 +250,22 @@ function renderHHMResult() {
         }
     }
 
-    // Specimen recommendation (all cases)
+    // Specimen recommendation (all cases), highest-priority scenario wins
     let specimenHtml = '';
-    if (s.specimen) {
-        const sc = hhmSpecimenScenarios.find(x => x.key === s.specimen);
-        if (sc) {
-            const out = hhmSpecimenOutput[sc.specimen];
-            const counsel = out.counsel ? `<p class="o-hhm-result-note">${HHM_SPECIMEN_COUNSEL}</p>` : '';
-            specimenHtml = `<div class="o-hhm-extra fade-in"><span class="o-hhm-extra-label">Recommended specimen:</span> ${out.name}</div>${counsel}`;
-        }
+    const spec = computeHHMSpecimen(s.specimen);
+    if (spec) {
+        const counsel = spec.counsel ? `<p class="o-hhm-result-note">${HHM_SPECIMEN_COUNSEL}</p>` : '';
+        const pref = spec.overridden
+            ? `<p class="o-hhm-result-note">Preferred over the other selected specimen scenario(s).</p>`
+            : '';
+        specimenHtml = `<div class="o-hhm-extra fade-in"><span class="o-hhm-extra-label">Recommended specimen:</span> ${spec.name}</div>${counsel}${pref}`;
     }
 
     res.innerHTML = baseHtml + extraHtml + specimenHtml;
 }
 
 function resetHHM() {
-    hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null, features: {}, bmVariant: null, unaffRel: null, specimen: '' };
+    hhmState = { dx: '', ageBand: '', syndrome: null, relatives: '', shared: null, features: {}, bmVariant: null, unaffRel: null, specimen: {} };
     const dxSel = document.getElementById('hhmDx');
     if (dxSel) dxSel.value = '';
     renderHHM();
