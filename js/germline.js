@@ -121,17 +121,24 @@ async function lookupSingleVariant(state) {
         if (!ids.length) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
 
         const summaryResp = await ncbiFetch(
-            `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=${ids[0]}&retmode=json`
+            `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=${ids.join(',')}&retmode=json`
         );
         if (!summaryResp.ok) throw new Error(`ClinVar summary HTTP ${summaryResp.status}`);
         const summaryData = await summaryResp.json();
-        const variant = summaryData.result?.[ids[0]];
-        if (!variant) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
 
-        const variantTitle = (variant.title || variant.variation_name || '').toLowerCase();
-        if (!variantTitle.includes(coding.toLowerCase().replace(/\s/g, ''))) {
-            state.clinvarDone = true; state.clinvarSignificance = 'none'; return;
-        }
+        // ClinVar's search matches by gene + position text, not exact notation, so the
+        // same query can return several distinct substitutions at that position. Scan
+        // every candidate for one whose title actually matches what was typed, rather
+        // than assuming the first hit is correct.
+        const normalizedCoding = coding.toLowerCase().replace(/\s/g, '');
+        const matchId = ids.find(id => {
+            const v = summaryData.result?.[id];
+            const t = (v?.title || v?.variation_name || '').toLowerCase().replace(/\s/g, '');
+            return t.includes(normalizedCoding);
+        });
+        if (!matchId) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
+
+        const variant = summaryData.result[matchId];
 
         const overallClass = variant.germline_classification?.description || '';
         if (!overallClass) { state.clinvarDone = true; state.clinvarSignificance = 'none'; return; }
@@ -143,7 +150,7 @@ async function lookupSingleVariant(state) {
         state.clinvarDone = true;
         state.clinvarClass = overallClass;
         state.clinvarSignificance = classifySignificance(overallClass);
-        state.clinvarId = ids[0];
+        state.clinvarId = matchId;
         state.clinvarTotal = scvs.length;
         state.clinvarSummary = Object.entries(counts).map(([c, n]) => `${n}× ${c}`).join(', ');
 
