@@ -700,7 +700,7 @@ function renderVariantCard(state, idx) {
         plpButtons = `
             <div class="o-vcard-section">
                 <p class="o-cv-note">${reason}</p>
-                <p class="o-cv-note">Please review the variant yourself — search <a href="${clinvarSearchUrl}" target="_blank" rel="noopener">ClinVar</a> manually, check Varsome, or use other resources as you see fit — then indicate the classification below.</p>
+                <p class="o-cv-note">Please confirm variant pathogenicity by searching <a href="${clinvarSearchUrl}" target="_blank" rel="noopener">ClinVar</a> manually, searching Varsome, or using other resources as you see fit, and indicate the classification below.</p>
                 <div class="o-extbtns">
                     <a href="https://varsome.com/" target="_blank" rel="noopener" class="o-extbtn">Varsome  ↗</a>
                 </div>
