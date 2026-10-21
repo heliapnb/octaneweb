@@ -35,3 +35,8 @@ Eligibility criteria based on **Hereditary Cancer Testing Eligibility Criteria v
 ## Data sources
 
 Variant classifications are retrieved from **NCBI ClinVar** (https://www.ncbi.nlm.nih.gov/clinvar/). Primary data are obtained from the National Center for Biotechnology Information, U.S. National Library of Medicine. ClinVar is a public-domain resource; this tool is not affiliated with or endorsed by NCBI.
+
+## Disclaimer
+
+> **Prototype — Not for Clinical Use**
+> This tool is an unvalidated prototype made available for evaluation and feedback only. It has not been approved or endorsed by Ontario Health – Cancer Care Ontario. It must **not** be used to guide patient care, testing decisions, or clinical management. Some recommendations reflect local interpretation and may differ from published guidance. Always refer to the current published eligibility criteria and consult your clinical genetics service.

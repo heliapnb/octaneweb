@@ -684,8 +684,6 @@ function renderVariantCard(state, idx) {
             </div>
             ${clinvarTotal > 0 ? `<div class="o-cv-summary">${clinvarSummary}</div>` : ''}
             <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${clinvarId}/" target="_blank" rel="noopener" class="o-extlink">ClinVar record  ↗</a>`;
-    } else if (clinvarDone && clinvarSignificance === 'none') {
-        clinvarHtml = `<p class="o-cv-none">Not found on ClinVar.</p>`;
     }
 
     // ── P/LP decision (only if conflicting / unknown / not found) ──
@@ -693,11 +691,17 @@ function renderVariantCard(state, idx) {
     if (clinvarDone && (clinvarSignificance === 'none' || clinvarSignificance === 'conflicting' || clinvarSignificance === 'unknown')) {
         const yesActive = plpConfirmed === true;
         const noActive  = plpConfirmed === false;
+        const reason = clinvarSignificance === 'none'
+            ? 'The automatic ClinVar search could not find an exact match for this variant. It may be listed under different notation (e.g. another transcript), or may not be on ClinVar.'
+            : clinvarSignificance === 'conflicting'
+                ? 'ClinVar submitters have reported conflicting classifications for this variant, so it cannot be classified automatically.'
+                : `ClinVar’s classification for this variant (${clinvarClass}) could not be interpreted automatically.`;
+        const clinvarSearchUrl = `https://www.ncbi.nlm.nih.gov/clinvar/?term=${encodeURIComponent(`${gene}[gene] ${coding}`)}`;
         plpButtons = `
             <div class="o-vcard-section">
-                <p class="o-mini-prompt">Check Franklin and Varsome, then indicate classification:</p>
+                <p class="o-cv-note">${reason}</p>
+                <p class="o-cv-note">Please confirm variant pathogenicity by searching <a href="${clinvarSearchUrl}" target="_blank" rel="noopener">ClinVar</a> manually, searching Varsome, or using other resources as you see fit, and indicate the classification below.</p>
                 <div class="o-extbtns">
-                    <a href="https://franklin.genoox.com/clinical-db/home" target="_blank" rel="noopener" class="o-extbtn">Franklin  ↗</a>
                     <a href="https://varsome.com/" target="_blank" rel="noopener" class="o-extbtn">Varsome  ↗</a>
                 </div>
                 <div class="o-yn">
