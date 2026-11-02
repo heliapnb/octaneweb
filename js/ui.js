@@ -648,14 +648,9 @@ function setVariantPLP(idx, confirmed) {
     updateResultsPanel();
 }
 
-function setVariantContextAnswer(idx, val) {
-    window.variantStates[idx].contextAnswer = val;
+function setVariantAnswer(idx, key, val) {
+    window.variantStates[idx].answers[key] = val;
     renderVariantCards();
-    updateResultsPanel();
-}
-
-function setVariantAge(idx, age) {
-    window.variantStates[idx].ageInput = age;
     updateResultsPanel();
 }
 
@@ -711,7 +706,7 @@ function renderVariantCard(state, idx) {
             </div>`;
     }
 
-    // ── Context / age section (only if P/LP confirmed) ──
+    // ── Flowchart questions (only if P/LP confirmed) ──
     const contextHtml = plpConfirmed === true ? renderVariantContextSection(state, idx) : '';
 
     return `
@@ -730,58 +725,30 @@ function renderVariantCard(state, idx) {
         </div>`;
 }
 
+// The flowchart (evaluateVariant) decides which questions apply; render them in
+// order, plus any footnote attached to the gene's recommendation.
 function renderVariantContextSection(state, idx) {
-    const { gene, coding, contextAnswer, ageInput } = state;
-    const founderAPC = 'c.3920T>A', founderTP53 = 'c.1010G>A';
-
-    if (gene === 'VHL') {
-        return renderInlineYesNo(idx, 'Is the tumour Renal Cell Carcinoma?', ['Renal Cell Carcinoma'], contextAnswer);
-    }
-    if (ageOrContextGenes.includes(gene)) {
-        return renderInlineYesNo(idx, `Criteria supporting germline confirmation — ${gene}`, contextGenes[gene], contextAnswer)
-             + renderAgeInput(idx, ageInput);
-    }
-    if (contextGenes[gene]) {
-        return renderInlineYesNo(idx, `Criteria supporting germline confirmation — ${gene}`, contextGenes[gene], contextAnswer);
-    }
-    if (gene === 'APC' && !coding.includes(founderAPC)) {
-        return renderAgeInput(idx, ageInput);
-    }
-    if (gene === 'TP53' && !coding.includes(founderTP53)) {
-        return renderAgeInput(idx, ageInput);
-    }
-    if (gene === 'EGFR' && coding.includes('c.2369C>T')) {
-        return renderInlineYesNo(idx, 'Clinical Context — EGFR c.2369C>T', ['Patient is TKI Treatment-Naïve'], contextAnswer) +
-            renderAgeInput(idx, ageInput);
-    }
-    if (step8Genes.includes(gene)) {
-        return renderAgeInput(idx, ageInput);
-    }
-    return '';
+    const { questions, result } = evaluateVariant(state);
+    const qs = questions.map(q => renderQuestion(idx, q, state.answers[q.key])).join('');
+    const note = result?.note
+        ? `<div class="o-vcard-section"><p class="o-cv-note"><strong>Note:</strong> ${italicizeGenes(result.note)}</p></div>`
+        : '';
+    return qs + note;
 }
 
-function renderInlineYesNo(idx, title, criteria, currentAnswer) {
-    const bullets = criteria.map(c => `<li>${c}</li>`).join('');
-    const yesActive = currentAnswer === 'yes';
-    const noActive  = currentAnswer === 'no';
+function renderQuestion(idx, q, answer) {
+    const bullets = q.criteria ? `<ul class="o-qcrit">${q.criteria.map(c => `<li>${c}</li>`).join('')}</ul>` : '';
+    const note = q.note ? `<p class="o-cv-note">${italicizeGenes(q.note)}</p>` : '';
     return `
         <div class="o-vcard-section">
-            <div class="o-qtitle">${title}</div>
-            <ul class="o-qcrit">${bullets}</ul>
-            <p class="o-q-prompt" style="margin-bottom:10px;">Does this case meet one or more of the above criteria?</p>
+            <div class="o-qtitle">${q.title}</div>
+            ${bullets}
+            <p class="o-q-prompt" style="margin-bottom:10px;">${italicizeGenes(q.prompt)}</p>
+            ${note}
             <div class="o-yn">
-                <button onclick="setVariantContextAnswer(${idx}, 'yes')" class="o-yn-btn${yesActive ? ' is-yes-on' : ''}">Yes</button>
-                <button onclick="setVariantContextAnswer(${idx}, 'no')" class="o-yn-btn${noActive ? ' is-no-on' : ''}">No</button>
+                <button onclick="setVariantAnswer(${idx}, '${q.key}', 'yes')" class="o-yn-btn${answer === 'yes' ? ' is-yes-on' : ''}">Yes</button>
+                <button onclick="setVariantAnswer(${idx}, '${q.key}', 'no')" class="o-yn-btn${answer === 'no' ? ' is-no-on' : ''}">No</button>
             </div>
-        </div>`;
-}
-
-function renderAgeInput(idx, ageInput) {
-    return `
-        <div class="o-vcard-section">
-            <div class="o-qtitle">Age at diagnosis</div>
-            <input type="number" value="${ageInput}" placeholder="e.g. 28" min="1" max="120"
-                oninput="setVariantAge(${idx}, this.value)" class="o-age-input">
         </div>`;
 }
 
@@ -802,7 +769,7 @@ function updateResultsPanel() {
     const states = window.variantStates;
     if (!states || !states.length) return;
 
-    const pairs = states.map(s => ({ state: s, result: computeRecommendationForVariant(s) }));
+    const pairs = states.map(s => ({ state: s, result: evaluateVariant(s).result }));
     const anyComputed = pairs.some(p => p.result && !p.result.pending);
     if (!anyComputed) return;
 
@@ -825,10 +792,11 @@ function updateResultsPanel() {
         } else {
             const badge = `<span class="o-td-badge ${recBadgeClass(result.color)}">${result.rec}</span>`;
             const rationale = result.rationale ? `<div class="rationale">${italicizeGenes(result.rationale)}</div>` : '';
+            const note = result.note ? `<div class="rationale"><strong>Note:</strong> ${italicizeGenes(result.note)}</div>` : '';
             const refs = result.refs?.length
                 ? `<div class="refs">${result.refs.map(r => `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`).join('')}</div>`
                 : '';
-            recCell = badge + rationale + refs;
+            recCell = badge + rationale + note + refs;
         }
 
         return `<tr>
@@ -843,25 +811,22 @@ function updateResultsPanel() {
     const resolved = pairs.filter(p => p.result && !p.result.pending);
     const allResolved = resolved.length === pairs.length;
     const recommended = resolved.filter(p => p.result.rec === 'RECOMMENDED');
-    const mdt = resolved.filter(p => p.result.rec === 'REVIEW / MDT');
-    const notOffered = resolved.filter(p => p.result.rec === 'NOT OFFERED');
+    const notRequired = resolved.filter(p => p.result.rec === 'NOT REQUIRED');
 
     let bannerClass, bannerLabel, bannerTitle, bannerBody;
     if (!allResolved) {
         bannerClass = 'is-pending'; bannerLabel = 'Pending';
         bannerTitle = 'Awaiting Input';
-        bannerBody = 'Complete context questions for all variants to see the final recommendation.';
-    } else if (recommended.length || mdt.length) {
+        bannerBody = 'Answer the questions for each variant to see the final recommendation.';
+    } else if (recommended.length) {
         bannerClass = 'is-success'; bannerLabel = 'Recommended';
         bannerTitle = 'Germline Confirmation Recommended';
-        const parts = [];
-        if (recommended.length) parts.push(`Recommended: ${recommended.map(p => p.state.gene).join(', ')}`);
-        if (mdt.length) parts.push(`MDT review: ${mdt.map(p => p.state.gene).join(', ')}`);
-        if (notOffered.length) parts.push(`Not offered: ${notOffered.map(p => p.state.gene).join(', ')}`);
+        const parts = [`Recommended: ${recommended.map(p => p.state.gene).join(', ')}`];
+        if (notRequired.length) parts.push(`Not required: ${notRequired.map(p => p.state.gene).join(', ')}`);
         bannerBody = parts.join(' · ');
     } else {
-        bannerClass = 'is-danger'; bannerLabel = 'Not Offered';
-        bannerTitle = 'Germline Confirmation Not Offered';
+        bannerClass = 'is-danger'; bannerLabel = 'Not Required';
+        bannerTitle = 'Germline Follow-up Not Required';
         bannerBody = 'None of the identified variants meet criteria for germline confirmation.';
     }
 

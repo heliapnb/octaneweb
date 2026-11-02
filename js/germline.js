@@ -1,68 +1,97 @@
 // --- GERMLINE DATA ---
-
-// Step 3: Unconditionally RECOMMENDED (ESMO 2022 gene list, no context conditions)
-const step3Genes = [
-    "ATM", "BAP1", "BARD1", "BRCA1", "BRCA2", "BRIP1", "CHEK2", "FH", "FLCN",
-    "MLH1", "MSH2", "MSH6", "PALB2", "PMS2", "POLD1", "POLE", "RAD51C", "RAD51D",
-    "RET", "SDHA", "SDHAF2", "SDHB", "SDHC", "SDHD", "SUFU", "TMEM127", "TSC2"
-];
-
-// Step 3 (notes 1-4) + Step 7 (notes 10-16): RECOMMENDED only when clinical context is met
-const contextGenes = {
-    "CDH1":    ["Invasive ductal carcinoma", "Esophagogastric cancer", "Colorectal cancer", "NSCLC", "Melanoma", "Soft Tissue Sarcoma"],
-    "DICER1":  ["Sex Cord Stromal tumor", "Soft Tissue Sarcoma", "Colorectal cancer", "Thyroid cancer", "Breast cancer", "Germ cell tumor", "Prostate cancer"],
-    "PTCH1":   ["Non-melanoma skin cancer", "Embryonal tumor", "Colorectal cancer", "Glioma", "Soft Tissue Sarcoma", "Breast cancer", "Prostate cancer"],
-    "SMAD3":   ["Colorectal cancer", "NSCLC", "Breast cancer", "Glioma", "Renal cell carcinoma", "Soft Tissue Sarcoma"],
-    "CDKN2A":  ["Melanoma", "Soft Tissue Sarcoma", "Breast cancer", "Endometrial cancer", "Colorectal cancer", "Thymic tumor", "Bone cancer", "CNS cancer"],
-    "NF1":     ["Nerve Sheath tumor", "PNS tumor", "Soft Tissue Sarcoma", "GIST", "Pancreatic cancer", "Esophagogastric cancer", "Hepatobiliary cancer", "Mesothelioma", "Sex Cord Stromal tumor", "Thymic tumor", "Cancer of Unknown Primary"],
-    "PTEN":    ["Symptoms of Cowden Syndrome"],
-    "RB1":     ["Retinoblastoma", "Bone cancer", "CNS cancer", "Endometrial cancer", "Esophagogastric cancer", "Non-melanoma skin cancer", "Renal cell carcinoma"],
-    "SMAD4":   ["Cancer of Unknown Primary", "Mesothelioma"],
-    "SMARCA4": ["Ovarian cancer", "Pancreatic cancer", "Head and Neck cancer", "Glioma", "Prostate cancer"],
-    "SMARCB1": ["Soft Tissue Rhabdoid tumor", "Renal Cell Carcinoma", "Thyroid cancer", "Embryonal tumor"]
-};
-
-// Per-gene rationale when context IS met (for contextGenes)
-const contextRationale = {
-    "CDH1":    "CDH1 germline conversion rate is highly context-dependent: 36.8% in esophagogastric cancer vs. 1.5% in breast cancer. Selected context supports germline confirmation.",
-    "DICER1":  "DICER1 germline conversion rate is context-dependent. Selected clinical context supports germline confirmation per ESMO 2022 analysis of 49,264 paired tumor-normal samples.",
-    "PTCH1":   "PTCH1 germline conversion rate is context-dependent. Selected clinical context supports germline confirmation per ESMO 2022 recommendations.",
-    "SMAD3":   "SMAD3 germline conversion rate is context-dependent. Selected clinical context supports germline confirmation per ESMO 2022 recommendations.",
-    "CDKN2A":  "CDKN2A is a Standard-Actionability cancer susceptibility gene (SA-CSG) per ESMO 2022. Germline follow-up is recommended in specific cancer contexts regardless of age.",
-    "NF1":     "NF1 is a Standard-Actionability cancer susceptibility gene per ESMO 2022. Germline follow-up is recommended in specific tumor contexts.",
-    "PTEN":    "PTEN has a 0.6% overall germline conversion rate, but symptomatic Cowden syndrome presentations significantly increase germline probability.",
-    "RB1":     "RB1 has a 3% overall germline conversion rate, rising to 37% at very young age. Selected cancer context supports germline confirmation.",
-    "SMAD4":   "SMAD4 germline conversion rate is context-dependent. Selected clinical context supports germline confirmation per ESMO 2022 recommendations.",
-    "SMARCA4": "SMARCA4 is a Standard-Actionability cancer susceptibility gene per ESMO 2022. Germline follow-up is recommended in specific cancer contexts.",
-    "SMARCB1": "SMARCB1 germline conversion rate is context-dependent. Selected clinical context supports germline confirmation per ESMO 2022 recommendations."
-};
-
-// Recommended if the tumour was diagnosed ≤30y OR a supporting clinical context is met
-// (either one alone is sufficient). Their context lists and rationale live in the
-// contextGenes / contextRationale objects above.
-const ageOrContextGenes = ["PTEN", "CDKN2A", "RB1", "SMARCA4", "SMAD4", "NF1", "SMARCB1"];
-
-// Step 8: age ≤30 at diagnosis → REVIEW/MDT, else NOT OFFERED
-const step8Genes = [
-    "AIP", "AXIN2", "CDK4", "CTNNA1", "EGFR", "EGLN1", "EXT1", "EXT2",
-    "GALNT12", "GREM1", "HOXB13", "KIT", "LZTR1", "MAX", "MEN1", "MET",
-    "MITF", "MLH3", "NBN", "NTHL1", "PDGFRA", "POT1", "PRKAR1", "RECQL",
-    "RNF43", "RPS20", "SMARCE1", "TERT", "WT1"
-];
+// Follows the OCTANE solid-tumour flowchart: P/LP tumour variant → main gene list
+// or known founder variant → age-dependent genes (≤30y, Box A) → other clinical
+// suspicion. These objects encode clinical recommendations — see CLAUDE.md.
 
 // Reference links
 const REFS = {
     kuzbari: { text: "Kuzbari et al., ESMO 2022", url: "https://doi.org/10.1016/j.annonc.2022.12.003" },
     clark:   { text: "Clark et al., JCO 2019",    url: "https://doi.org/10.1200/PO.19.00076" },
-    klek:    { text: "Klek et al., JNCI 2020",    url: "https://doi.org/10.1093/jncics/pkaa018" }
+    klek:    { text: "Klek et al., JNCI 2020",    url: "https://doi.org/10.1093/jncics/pkaa018" },
+    ricker:  { text: "Ricker et al., ASCO 2024",  url: "https://doi.org/10.1200/OP.24.00278" }
 };
 
-const allGenes = [...new Set([
-    ...step3Genes,
-    ...Object.keys(contextGenes),
-    "VHL", "MUTYH", "APC", "TP53",
-    ...step8Genes
-])].sort();
+// Step 3 — main gene list. A P/LP tumour variant in one of these genes is recommended
+// for germline confirmation. A gene with a `question` is only on the list when that
+// question is answered `passWhen`; otherwise the variant continues down the flowchart.
+// `note` is an informational footnote shown alongside the recommendation.
+const mainGenes = {
+    ATM: {}, BAP1: {}, BARD1: {}, BRCA1: {}, BRCA2: {}, BRIP1: {}, CHEK2: {},
+    DICER1: {}, FH: {}, FLCN: {}, MLH1: {}, MSH2: {}, MSH6: {}, PALB2: {}, PMS2: {},
+    POLD1: {}, PTCH1: {}, RAD51C: {}, RAD51D: {}, RET: {}, SDHA: {}, SDHAF2: {},
+    SDHB: {}, SDHC: {}, SDHD: {}, SMARCB1: {}, SUFU: {}, TMEM127: {}, TSC2: {},
+    CDH1: {
+        question: { key: 'breast', title: 'Tumour type — CDH1', prompt: 'Is this a breast cancer?' },
+        passWhen: 'no',
+        passText: 'ESMO recommends germline confirmation for CDH1 tumour variants in all tumour contexts excluding breast cancer.',
+        failText: 'ESMO does not recommend germline confirmation of CDH1 tumour variants in breast cancer.'
+    },
+    MEN1: {
+        question: { key: 'nsclc', title: 'Tumour type — MEN1', prompt: 'Is this a non-small cell lung carcinoma?' },
+        passWhen: 'yes',
+        passText: 'ESMO’s data supports germline confirmation of MEN1 tumour variants in non-small cell lung carcinoma only, at any age.',
+        failText: 'MEN1 germline confirmation is supported in non-small cell lung carcinoma only.'
+    },
+    MUTYH: {
+        question: { key: 'biallelic', title: 'Zygosity — MUTYH', prompt: 'Is the MUTYH variant biallelic (homozygous, or with a second MUTYH variant)?' },
+        passWhen: 'yes',
+        passText: 'Germline confirmation is recommended for biallelic MUTYH tumour variants.',
+        failText: 'MUTYH germline confirmation is recommended for biallelic variants only.'
+    },
+    NF1: {
+        refs: [REFS.kuzbari, REFS.ricker],
+        note: 'Germline confirmation of NF1 tumour variants may be offered in any tumour context as per ESMO. Testing can also be limited to associated tumour types (ESMO on-tumour contexts: breast cancer, CNS cancer, GIST, glioma, nerve sheath tumour, peripheral nervous system, PHEO-PGL), or patients displaying clinical NF manifestations, if a more conservative approach is desired (ASCO 2024, UKCGG 2025).'
+    },
+    POLE: {
+        note: 'CCO excludes endometrial cancer >50 years in their recommendation for germline confirmation of POLE tumour variants. However, this exclusion is not supported by ESMO’s dataset, and ESMO recommends germline confirmation for POLE tumour variants in all tumour contexts.'
+    },
+    SMAD3: {
+        note: 'ESMO recommends germline confirmation of SMAD3 tumour variants in any tumour context; however, CCO does not include SMAD3 variants in their recommendations. Although not cancer-related, SMAD3 has a pan-tumour GCR of 13% and is highly actionable for Loeys-Dietz syndrome 3 and non-syndromic thoracic aortic aneurysms.'
+    },
+    VHL: {
+        question: { key: 'renal', title: 'Tumour type — VHL', prompt: 'Is this a renal (kidney) cancer?' },
+        passWhen: 'no',
+        passText: 'Germline confirmation of VHL tumour variants is recommended in all tumour contexts excluding renal cancers.',
+        failText: 'VHL germline confirmation is not recommended for renal cancers.'
+    }
+};
+
+// Step 4 — recommended if diagnosed ≤30y, or a Box A criterion / clinical suspicion is met.
+// TP53 in a brain tumour skips the age criterion (brain tumours excluded, per ESMO).
+const ageGenes = ["APC", "CDKN2A", "PTEN", "RB1", "SMARCA4", "TP53"];
+
+// Box A — additional contexts supporting germline confirmation at any age
+const boxA = {
+    APC:    ["Non-small cell lung carcinoma, at any age (ESMO)"],
+    CDKN2A: ["Melanoma, at any age (ESMO)", "Breast cancer, at any age (ESMO)", "Pancreatic adenocarcinoma (ASCO 2024)"],
+    TP53:   ["Soft tissue tumour, at any age (ESMO)", "Embryonal tumour, at any age (ESMO)"]
+};
+
+// Genes outside both lists, kept for autocomplete and gene-name italics only —
+// they follow the flowchart's "other clinical suspicion" path like any other gene.
+const otherGenes = [
+    "AIP", "AXIN2", "CDK4", "CTNNA1", "EGFR", "EGLN1", "EXT1", "EXT2", "GALNT12",
+    "GREM1", "HOXB13", "KIT", "LZTR1", "MAX", "MET", "MITF", "MLH3", "NBN", "NTHL1",
+    "PDGFRA", "POT1", "PRKAR1", "RECQL", "RNF43", "RPS20", "SMAD4", "SMARCE1", "TERT", "WT1"
+];
+
+const allGenes = [...new Set([...Object.keys(mainGenes), ...ageGenes, ...otherGenes])].sort();
+
+// Flowchart questions shared across genes
+const Q_FOUNDER   = { key: 'founder', title: 'Founder variant', prompt: 'Is this a known founder variant?' };
+const Q_AGE       = { key: 'age30', title: 'Age at diagnosis', prompt: 'Was the patient 30 years old or younger at the time of this diagnosis?' };
+const Q_BRAIN     = { key: 'brain', title: 'Tumour type — TP53', prompt: 'Is this a brain tumour?', note: 'ESMO: brain tumours may be excluded from germline confirmation of TP53 tumour variants.' };
+const Q_SUSPICION = { key: 'suspicion', title: 'Clinical suspicion', prompt: 'Are there any other clinical suspicions for a germline origin for the variant?' };
+
+function boxAQuestion(gene) {
+    const criteria = boxA[gene];
+    if (!criteria) return { key: 'boxA', title: `Additional criteria — ${gene}`, prompt: 'Are there any clinical suspicions for a germline origin for the variant?' };
+    return {
+        key: 'boxA', title: `Additional criteria — ${gene}`,
+        criteria: [...criteria, 'Clinical suspicion of a germline origin for the variant'],
+        prompt: 'Does this case meet one or more of the above?'
+    };
+}
 
 // Shared mutable state — read/written by the UI layer
 window.variantStates = [];
@@ -94,8 +123,7 @@ function createVariantState(gene, coding) {
         clinvarTotal: 0,
         clinvarSummary: '',
         plpConfirmed: null,   // true | false | null
-        contextAnswer: null,  // 'yes' | 'no' | null
-        ageInput: '',
+        answers: {},          // flowchart question key → 'yes' | 'no'
     };
 }
 
@@ -170,82 +198,71 @@ function classifySignificance(overallClass) {
     return 'unknown';
 }
 
-function computeRecommendationForVariant(state) {
-    const { gene, coding, plpConfirmed, contextAnswer, ageInput } = state;
+// Walk the flowchart for one variant. Returns the questions that apply so far, in
+// order, and the result: null until P/LP status is known, { pending: true } while an
+// applicable question is unanswered.
+function evaluateVariant(state) {
+    const { gene, plpConfirmed, answers } = state;
+    const questions = [];
+    const ask = q => { questions.push(q); return answers[q.key]; };
+    const pending = () => ({ questions, result: { pending: true } });
+    const done = result => ({ questions, result: { pending: false, ...result } });
+    const recommended = (sub, rationale, refs, note) => done({ rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub, rationale, refs, note });
+    const notRequired = (sub, rationale, refs = []) => done({ rec: 'NOT REQUIRED', color: 'red', icon: 'fa-ban', sub, rationale, refs });
 
-    if (plpConfirmed === null) return null;
+    if (plpConfirmed === null) return { questions, result: null };
+    if (plpConfirmed === false) return done({
+        rec: 'NOT REQUIRED', color: 'slate', icon: 'fa-ban', sub: 'Variant not classified as P/LP.',
+        rationale: 'Germline follow-up is not required for tumour variants that are not pathogenic or likely pathogenic.', refs: []
+    });
 
-    if (plpConfirmed === false) return {
-        rec: 'NOT OFFERED', color: 'slate', icon: 'fa-ban',
-        sub: 'Variant not classified as P/LP.',
-        rationale: 'Germline confirmation is not recommended for variants not classified as pathogenic or likely pathogenic.',
-        refs: [], pending: false
-    };
-
-    const ageUnder30 = ageInput !== '' && parseInt(ageInput) <= 30;
-    const ctxYes = contextAnswer === 'yes';
-    const ctxNo  = contextAnswer === 'no';
-
-    if (step3Genes.includes(gene)) return {
-        rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle',
-        sub: 'Identified in ESMO 2022 high-risk gene list.',
-        rationale: `${gene} meets the ≥5% germline conversion rate threshold across tumour types, identified as a Most or High-Actionability cancer susceptibility gene in analysis of 49,264 paired tumour-normal samples.`,
-        refs: [REFS.kuzbari], pending: false
-    };
-
-    if (gene === 'VHL') {
-        if (ctxYes) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'VHL confirmation not recommended for Renal Cell Carcinoma.', rationale: 'VHL has only 1.5% germline conversion rate in RCC due to very high somatic VHL mutation frequency.', refs: [REFS.kuzbari], pending: false };
-        if (ctxNo)  return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Recommended in non-RCC clinical contexts.', rationale: 'VHL has 59.4% germline conversion rate in non-RCC tumours.', refs: [REFS.kuzbari], pending: false };
-        return { pending: true };
+    // Step 3 — main gene list, or a known founder variant
+    const rule = mainGenes[gene];
+    let failText = `${gene} is not on the main germline confirmation gene list.`;
+    if (rule) {
+        const refs = rule.refs || [REFS.kuzbari];
+        if (!rule.question) return recommended('Gene on the main germline confirmation list.',
+            `${gene} is on the list of genes for which germline confirmation of a P/LP tumour variant is recommended.`, refs, rule.note);
+        const ans = ask(rule.question);
+        if (!ans) return pending();
+        if (ans === rule.passWhen) return recommended('Gene on the main germline confirmation list.', rule.passText, refs);
+        failText = rule.failText;
     }
 
-    if (ageOrContextGenes.includes(gene)) {
-        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'Clinical context met for germline confirmation.', rationale: contextRationale[gene] || `${gene} germline confirmation is supported by the selected clinical context, irrespective of age.`, refs: [REFS.kuzbari], pending: false };
-        if (ageUnder30) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Tumour diagnosed at ≤30 years.', rationale: `ESMO recommends germline confirmation for ${gene} variants in tumours diagnosed at or below 30 years, irrespective of clinical context.`, refs: [REFS.kuzbari], pending: false };
-        if (ctxNo && ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: `${gene} — no qualifying context and age >30.`, rationale: `${gene} germline confirmation is reserved for tumours diagnosed ≤30 years or a supporting clinical context; neither is met.`, refs: [REFS.kuzbari], pending: false };
-        return { pending: true };
+    const founder = ask(Q_FOUNDER);
+    if (!founder) return pending();
+    if (founder === 'yes') return recommended('Known founder variant.',
+        'The variant is a known founder variant; germline confirmation is recommended.', [REFS.kuzbari, REFS.clark, REFS.klek]);
+
+    // Step 4 — age-dependent genes
+    if (ageGenes.includes(gene)) {
+        let ageApplies = true;
+        if (gene === 'TP53') {
+            const brain = ask(Q_BRAIN);
+            if (!brain) return pending();
+            ageApplies = brain === 'no';
+        }
+        if (ageApplies) {
+            const age = ask(Q_AGE);
+            if (!age) return pending();
+            if (age === 'yes') return recommended('Tumour diagnosed at ≤30 years.',
+                `Germline confirmation is recommended for ${gene} tumour variants in tumours diagnosed at or below 30 years.`, [REFS.kuzbari]);
+        }
+        const extra = ask(boxAQuestion(gene));
+        if (!extra) return pending();
+        if (extra === 'yes') return recommended('Additional criterion or clinical suspicion met.',
+            `The ${gene} variant meets an additional criterion supporting germline confirmation, or there is a clinical suspicion of germline origin.`,
+            gene === 'CDKN2A' ? [REFS.kuzbari, REFS.ricker] : [REFS.kuzbari]);
+        const ageText = ageApplies ? 'the tumour was diagnosed after age 30' : 'brain tumours are excluded from the age criterion';
+        return notRequired('No qualifying criteria met.',
+            `${gene}: ${ageText}, the variant is not a known founder variant, and no additional criterion or clinical suspicion of germline origin was identified.`, [REFS.kuzbari]);
     }
 
-    if (contextGenes[gene]) {
-        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'Clinical context met for germline confirmation.', rationale: contextRationale[gene] || `${gene} germline conversion rate is context-dependent. Selected clinical context supports germline confirmation.`, refs: [REFS.kuzbari], pending: false };
-        if (ctxNo)  return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'No applicable clinical context identified.', rationale: `${gene} germline conversion rate is context-dependent. Without a matching clinical context, germline confirmation is not recommended.`, refs: [REFS.kuzbari], pending: false };
-        return { pending: true };
-    }
-
-    if (gene === 'MUTYH') {
-        if (coding.includes('c.452A>G') || coding.includes('c.1103G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known MUTYH founder variant identified.', rationale: 'MUTYH has a 98.5% germline conversion rate. The detected variant is a known founder mutation.', refs: [REFS.kuzbari, REFS.clark, REFS.klek], pending: false };
-        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'Not a known MUTYH founder variant.', rationale: 'Confirmation is reserved for the established founder variants c.452A>G and c.1103G>A.', refs: [REFS.kuzbari], pending: false };
-    }
-
-    if (gene === 'APC') {
-        if (coding.includes('c.3920T>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known APC founder variant (c.3920T>A).', rationale: 'APC c.3920T>A is a known germline founder mutation.', refs: [REFS.kuzbari, REFS.clark, REFS.klek], pending: false };
-        if (ageUnder30) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Tumour diagnosed at ≤30 years.', rationale: 'ESMO 2022 recommends germline confirmation for APC variants in patients diagnosed at or below 30 years.', refs: [REFS.kuzbari], pending: false };
-        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'APC variant does not meet criteria.', rationale: 'APC has only 1.1% overall GCR. Confirmation is reserved for c.3920T>A or diagnosis ≤30y.', refs: [REFS.kuzbari], pending: false };
-        return { pending: true };
-    }
-
-    if (gene === 'TP53') {
-        if (coding.includes('c.1010G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TP53 founder variant (c.1010G>A).', rationale: 'TP53 c.1010G>A is a known germline founder mutation.', refs: [REFS.kuzbari, REFS.clark, REFS.klek], pending: false };
-        if (ageUnder30) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub: 'Tumour diagnosed at ≤30 years.', rationale: 'ESMO 2022 recommends germline confirmation for TP53 variants in patients diagnosed at or below 30 years.', refs: [REFS.kuzbari], pending: false };
-        if (ageInput !== '' && !ageUnder30) return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'TP53 variant does not meet criteria.', rationale: 'TP53 has only 0.9% overall GCR. Confirmation is reserved for the c.1010G>A founder variant or diagnosis ≤30y.', refs: [REFS.kuzbari], pending: false };
-        return { pending: true };
-    }
-
-    if (gene === 'HOXB13' && coding.includes('c.251G>A')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known HOXB13 founder variant (c.251G>A).', rationale: 'HOXB13 c.251G>A is a known founder germline variant associated with hereditary prostate cancer.', refs: [REFS.clark, REFS.klek], pending: false };
-
-    if (gene === 'TERT' && coding.includes('c.-57T>G')) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-fingerprint', sub: 'Known TERT founder variant (c.-57T>G).', rationale: 'TERT c.-57T>G is a known founder germline variant associated with increased cancer susceptibility.', refs: [REFS.clark, REFS.klek], pending: false };
-
-    if (gene === 'EGFR' && coding.includes('c.2369C>T')) {
-        if (ctxYes) return { rec: 'RECOMMENDED', color: 'green', icon: 'fa-user-check', sub: 'EGFR c.2369C>T in TKI treatment-naïve patient.', rationale: 'EGFR c.2369C>T (p.T790M) in a TKI-naïve patient suggests germline origin rather than acquired resistance.', refs: [REFS.clark, REFS.klek], pending: false };
-        if (ctxNo)  { /* fall through to step8 */ }
-        else        return { pending: true };
-    }
-
-    if (step8Genes.includes(gene)) {
-        if (ageInput === '') return { pending: true };
-        if (ageUnder30) return { rec: 'REVIEW / MDT', color: 'amber', icon: 'fa-users', sub: `${gene} — MDT review recommended (age ≤30).`, rationale: `${gene} has low overall GCR but elevated germline probability in patients ≤30 years at diagnosis. MDT discussion recommended.`, refs: [REFS.kuzbari], pending: false };
-        return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: `${gene} — age >30 does not meet criteria.`, rationale: `${gene} germline follow-up is only considered for patients diagnosed at ≤30 years.`, refs: [REFS.kuzbari], pending: false };
-    }
-
-    return { rec: 'NOT OFFERED', color: 'red', icon: 'fa-ban', sub: 'Gene not in CCO germline workflow.', rationale: `${gene} is not included in the current CCO germline confirmation workflow.`, refs: [], pending: false };
+    // Any other gene (or a main-list gene whose condition was not met)
+    const suspicion = ask(Q_SUSPICION);
+    if (!suspicion) return pending();
+    if (suspicion === 'yes') return recommended('Clinical suspicion of germline origin.',
+        'There is a clinical suspicion of a germline origin for the variant; germline confirmation is recommended.', []);
+    return notRequired('No qualifying criteria met.',
+        `${failText} The variant is not a known founder variant, and there is no other clinical suspicion of germline origin.`);
 }

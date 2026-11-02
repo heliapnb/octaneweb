@@ -8,7 +8,7 @@ A clinical decision support web app for hereditary cancer / Hematopoietic Cell T
 Search a patient's diagnosis and check which CCO criteria apply. Any single criterion confirms eligibility for hereditary cancer testing.
 
 **Tab 2 — Germline Confirmation**
-Enter a gene and variant (cDNA notation) to get a recommendation: RECOMMENDED, REVIEW CONTEXT, or NOT RECOMMENDED, based on the Nov 2025 CCO workflow.
+Enter a gene and variant (cDNA notation) to get a recommendation on germline confirmation of the tumour variant — RECOMMENDED or NOT REQUIRED — based on the OCTANE solid-tumour flowchart (informed by ESMO 2022, ASCO 2024 and CCO).
 
 ## How to run
 
