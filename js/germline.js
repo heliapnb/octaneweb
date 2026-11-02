@@ -51,10 +51,10 @@ const mainGenes = {
     },
     NF1: {
         question: {
-            key: 'nfContext', title: 'Clinical context — NF1',
+            key: 'nfContext', title: 'Clinical context',
             criteria: [
                 'Clinical manifestations of neurofibromatosis type 1',
-                'Associated tumour type (breast cancer, CNS cancer, GIST, glioma, nerve sheath tumour, peripheral nervous system tumour, PHEO-PGL)',
+                'Associated tumour type (breast cancer, central nervous system (CNS) cancer, gastrointestinal stromal tumour (GIST), glioma, nerve sheath tumour, peripheral nervous system tumour, pheochromocytoma/paraganglioma (PHEO-PGL))',
                 'Strong clinical suspicion of germline origin'
             ],
             prompt: 'Does this case meet one or more of the above?'
@@ -283,7 +283,7 @@ function evaluateVariant(state) {
         return done({ rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub, rationale, refs, note: [note, caveat].filter(Boolean).join(' ') });
     };
     const notRequired = (sub, rationale, refs = []) => done({ rec: 'NOT REQUIRED', color: 'red', icon: 'fa-ban', sub, rationale, refs });
-    const judgement = (sub, rationale, refs) => done({ rec: 'CLINICAL JUDGEMENT', color: 'amber', icon: 'fa-user-md', sub, rationale, refs });
+    const judgement = (sub, rationale, refs) => done({ rec: 'REFER TO CLINICAL JUDGEMENT', color: 'amber', icon: 'fa-user-md', sub, rationale, refs });
 
     if (plpConfirmed === null) return { questions, result: null };
     if (plpConfirmed === false) return done({

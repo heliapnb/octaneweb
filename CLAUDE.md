@@ -70,7 +70,7 @@ Key functions:
 ### Tab 2 — Solid Tumour Variants, Germline Confirmation (`js/germline.js`)
 
 Takes gene + cDNA variants, looks each up in ClinVar, and returns RECOMMENDED /
-CLINICAL JUDGEMENT (NF1 only) / NOT REQUIRED by walking the **OCTANE solid-tumour flowchart** (source:
+REFER TO CLINICAL JUDGEMENT (NF1 only) / NOT REQUIRED by walking the **OCTANE solid-tumour flowchart** (source:
 `OCTANE criteria/OCTANE flowchart.pptx`, outside this repo): P/LP tumour variant →
 main gene list or known founder variant → age-dependent genes (≤30y, then Box A
 or clinical suspicion) → any other clinical suspicion. CCO eligibility is not
