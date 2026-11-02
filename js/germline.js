@@ -51,7 +51,7 @@ const mainGenes = {
     },
     NF1: {
         question: {
-            key: 'nfContext', title: 'Clinical context — NF1',
+            key: 'nfContext', title: 'Clinical context',
             criteria: [
                 'Clinical manifestations of neurofibromatosis type 1',
                 'Associated tumour type (breast cancer, CNS cancer, GIST, glioma, nerve sheath tumour, peripheral nervous system tumour, PHEO-PGL)',
