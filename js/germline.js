@@ -283,7 +283,7 @@ function evaluateVariant(state) {
         return done({ rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub, rationale, refs, note: [note, caveat].filter(Boolean).join(' ') });
     };
     const notRequired = (sub, rationale, refs = []) => done({ rec: 'NOT REQUIRED', color: 'red', icon: 'fa-ban', sub, rationale, refs });
-    const judgement = (sub, rationale, refs) => done({ rec: 'CLINICAL JUDGEMENT', color: 'amber', icon: 'fa-user-md', sub, rationale, refs });
+    const judgement = (sub, rationale, refs) => done({ rec: 'REFER TO CLINICAL JUDGEMENT', color: 'amber', icon: 'fa-user-md', sub, rationale, refs });
 
     if (plpConfirmed === null) return { questions, result: null };
     if (plpConfirmed === false) return done({

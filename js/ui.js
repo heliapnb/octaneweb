@@ -820,12 +820,12 @@ function updateResultsPanel() {
     const resolved = pairs.filter(p => p.result && !p.result.pending);
     const allResolved = resolved.length === pairs.length;
     const recommended = resolved.filter(p => p.result.rec === 'RECOMMENDED');
-    const judgement = resolved.filter(p => p.result.rec === 'CLINICAL JUDGEMENT');
+    const judgement = resolved.filter(p => p.result.rec === 'REFER TO CLINICAL JUDGEMENT');
     const notRequired = resolved.filter(p => p.result.rec === 'NOT REQUIRED');
     const genes = list => list.map(p => p.state.gene).join(', ');
     const summary = () => [
         recommended.length && `Recommended: ${genes(recommended)}`,
-        judgement.length && `Clinical judgement: ${genes(judgement)}`,
+        judgement.length && `Refer to clinical judgement: ${genes(judgement)}`,
         notRequired.length && `Not required: ${genes(notRequired)}`
     ].filter(Boolean).join(' · ');
 
@@ -839,7 +839,7 @@ function updateResultsPanel() {
         bannerTitle = 'Germline Confirmation Recommended';
         bannerBody = summary();
     } else if (judgement.length) {
-        bannerClass = 'is-warn'; bannerLabel = 'Clinical Judgement';
+        bannerClass = 'is-warn'; bannerLabel = 'Refer to Clinical Judgement';
         bannerTitle = 'Refer to Clinical Judgement';
         bannerBody = summary();
     } else {
