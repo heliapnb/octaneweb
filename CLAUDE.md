@@ -58,7 +58,7 @@ confirms eligibility). Based on **Hereditary Cancer Testing Eligibility Criteria
 v4.0 (June 2026)**.
 
 Key data objects:
-- `dxMapping` — 45 diagnoses mapped to 13 categories
+- `dxMapping` — 46 diagnoses mapped to 14 categories
 - `dxCategories` — criteria list per category (breast/ovarian/prostate/biliary/
   pancreatic share one merged list, mirroring v4.0)
 - `dxSynonyms` — everyday terms and abbreviations for search
