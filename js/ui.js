@@ -659,7 +659,15 @@ function setVariantAnswer(idx, key, val) {
 function renderVariantCards() {
     const container = document.getElementById('gVariantCards');
     if (!container) return;
-    container.innerHTML = window.variantStates.map((s, i) => renderVariantCard(s, i)).join('');
+    container.innerHTML = window.variantStates.map((s, i) => variantNeedsCard(s) ? renderVariantCard(s, i) : '').join('');
+}
+
+// A card only appears while a variant needs input — lookup in progress or failed,
+// manual P/LP review, or flowchart questions. Otherwise the summary table covers it.
+function variantNeedsCard(state) {
+    if (!state.clinvarDone && state.plpConfirmed === null) return true;
+    if (['error', 'none', 'conflicting', 'unknown'].includes(state.clinvarSignificance)) return true;
+    return evaluateVariant(state).questions.length > 0;
 }
 
 function renderVariantCard(state, idx) {
@@ -725,15 +733,10 @@ function renderVariantCard(state, idx) {
         </div>`;
 }
 
-// The flowchart (evaluateVariant) decides which questions apply; render them in
-// order, plus any footnote attached to the gene's recommendation.
+// The flowchart (evaluateVariant) decides which questions apply; render them in order.
+// Footnotes on the recommendation appear in the summary table's rationale instead.
 function renderVariantContextSection(state, idx) {
-    const { questions, result } = evaluateVariant(state);
-    const qs = questions.map(q => renderQuestion(idx, q, state.answers[q.key])).join('');
-    const note = result?.note
-        ? `<div class="o-vcard-section"><p class="o-cv-note"><strong>Note:</strong> ${italicizeGenes(result.note)}</p></div>`
-        : '';
-    return qs + note;
+    return evaluateVariant(state).questions.map(q => renderQuestion(idx, q, state.answers[q.key])).join('');
 }
 
 function renderQuestion(idx, q, answer) {
@@ -778,11 +781,17 @@ function updateResultsPanel() {
 
     // ── Summary table rows ──
     const rows = pairs.map(({ state, result }) => {
-        const { gene, coding, clinvarClass } = state;
+        const { gene, coding, clinvarClass, clinvarId } = state;
 
-        const cvCell = clinvarClass
+        // The pill links to the ClinVar record (the variant card is often hidden)
+        const pill = clinvarClass
             ? `<span class="o-cv-pill ${getClassColor(clinvarClass)}" title="${clinvarClass}">${abbreviateClinvar(clinvarClass)}</span>`
-            : `<span style="color:var(--mute-light); font-style:italic;">—</span>`;
+            : '';
+        const cvCell = !clinvarClass
+            ? `<span style="color:var(--mute-light); font-style:italic;">—</span>`
+            : clinvarId
+                ? `<a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${clinvarId}/" target="_blank" rel="noopener" title="Open ClinVar record">${pill}</a>`
+                : pill;
 
         let recCell;
         if (!result) {
@@ -811,7 +820,14 @@ function updateResultsPanel() {
     const resolved = pairs.filter(p => p.result && !p.result.pending);
     const allResolved = resolved.length === pairs.length;
     const recommended = resolved.filter(p => p.result.rec === 'RECOMMENDED');
+    const judgement = resolved.filter(p => p.result.rec === 'CLINICAL JUDGEMENT');
     const notRequired = resolved.filter(p => p.result.rec === 'NOT REQUIRED');
+    const genes = list => list.map(p => p.state.gene).join(', ');
+    const summary = () => [
+        recommended.length && `Recommended: ${genes(recommended)}`,
+        judgement.length && `Clinical judgement: ${genes(judgement)}`,
+        notRequired.length && `Not required: ${genes(notRequired)}`
+    ].filter(Boolean).join(' · ');
 
     let bannerClass, bannerLabel, bannerTitle, bannerBody;
     if (!allResolved) {
@@ -821,9 +837,11 @@ function updateResultsPanel() {
     } else if (recommended.length) {
         bannerClass = 'is-success'; bannerLabel = 'Recommended';
         bannerTitle = 'Germline Confirmation Recommended';
-        const parts = [`Recommended: ${recommended.map(p => p.state.gene).join(', ')}`];
-        if (notRequired.length) parts.push(`Not required: ${notRequired.map(p => p.state.gene).join(', ')}`);
-        bannerBody = parts.join(' · ');
+        bannerBody = summary();
+    } else if (judgement.length) {
+        bannerClass = 'is-warn'; bannerLabel = 'Clinical Judgement';
+        bannerTitle = 'Refer to Clinical Judgement';
+        bannerBody = summary();
     } else {
         bannerClass = 'is-danger'; bannerLabel = 'Not Required';
         bannerTitle = 'Germline Follow-up Not Required';
