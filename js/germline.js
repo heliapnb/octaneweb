@@ -54,7 +54,7 @@ const mainGenes = {
             key: 'nfContext', title: 'Clinical context',
             criteria: [
                 'Clinical manifestations of neurofibromatosis type 1',
-                'Associated tumour type (breast cancer, CNS cancer, GIST, glioma, nerve sheath tumour, peripheral nervous system tumour, PHEO-PGL)',
+                'Associated tumour type (breast cancer, central nervous system (CNS) cancer, gastrointestinal stromal tumour (GIST), glioma, nerve sheath tumour, peripheral nervous system tumour, pheochromocytoma/paraganglioma (PHEO-PGL))',
                 'Strong clinical suspicion of germline origin'
             ],
             prompt: 'Does this case meet one or more of the above?'
