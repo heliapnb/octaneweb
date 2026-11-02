@@ -841,7 +841,8 @@ function updateResultsPanel() {
     } else if (judgement.length) {
         bannerClass = 'is-warn'; bannerLabel = 'Refer to Clinical Judgement';
         bannerTitle = 'Refer to Clinical Judgement';
-        bannerBody = summary();
+        // With a single variant the summary line would just repeat the title
+        bannerBody = pairs.length === 1 ? '' : summary();
     } else {
         bannerClass = 'is-danger'; bannerLabel = 'Not Required';
         bannerTitle = 'Germline Follow-up Not Required';
@@ -886,7 +887,7 @@ function updateResultsPanel() {
                     <span class="o-banner-badge">${bannerLabel}</span>
                     <span class="o-banner-title">${bannerTitle}</span>
                 </div>
-                <div class="o-banner-body">${bannerBody}</div>
+                ${bannerBody ? `<div class="o-banner-body">${bannerBody}</div>` : ''}
                 ${overallRationale}
                 ${refBlock}
             </div>
