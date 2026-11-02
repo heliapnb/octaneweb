@@ -60,6 +60,11 @@ const dxCategories = {
     "Pheo_Para": [
         "Personal history of a pheochromocytoma and/or paraganglioma at any age"
     ],
+    // Medullary thyroid cancer — local addition (not listed in v4.0); any MTC
+    // warrants germline testing (RET / MEN2).
+    "MTC": [
+        "Personal history of medullary thyroid cancer at any age"
+    ],
     "CNS": [
         "Brain tumour with ≥ 1 of: a personal history of ≥ 1 additional primary tumour and/or cancer (e.g. brain, soft tissue, Lynch-associated); ≥ 1 FDR/SDR with ≥ 2 primary tumours or cancers in one person; or ≥ 2 FDR/SDR with brain tumours and/or associated cancers (Lynch, Li-Fraumeni, soft tissue) on the same side of the family"
     ],
@@ -128,6 +133,8 @@ const dxMapping = {
     // Pheochromocytoma / Paraganglioma
     "Pheochromocytoma": "Pheo_Para",
     "Paraganglioma": "Pheo_Para",
+    // Medullary thyroid cancer
+    "Medullary Thyroid Cancer": "MTC",
     // CNS
     "Glioblastoma": "CNS",
     "Glioma": "CNS",
@@ -191,6 +198,8 @@ const dxSynonyms = {
 
     "Pheochromocytoma": ["ppgl", "adrenal tumour", "phaeochromocytoma"],
     "Paraganglioma": ["ppgl", "glomus tumour", "head and neck paraganglioma"],
+
+    "Medullary Thyroid Cancer": ["mtc", "medullary thyroid carcinoma", "thyroid cancer", "men2", "multiple endocrine neoplasia type 2", "ret"],
 
     "Glioblastoma": ["gbm", "glioblastoma multiforme", "brain cancer", "high grade glioma"],
     "Glioma": ["brain cancer", "astrocytoma", "oligodendroglioma", "high grade glioma"],
