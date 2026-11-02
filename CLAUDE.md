@@ -84,11 +84,14 @@ Key data objects:
   the age criterion); `boxA` — their any-age contexts
 - `otherGenes` — autocomplete/italics only; no special rules
 - `Q_*` — shared flowchart questions
-- `REFS` — sources (ESMO 2022, CCO v4.0, ASCO 2024, UKCGG 2025, UKCGG 2026).
-  Each recommendation cites only the guidelines that support it: `ALL_SOURCES`
-  by default, per-gene `refs` overrides, `ageGeneRefs`, `BRAIN_REFS`, and
+- `REFS` — sources (ESMO 2022, CCO v4.0, ASCO 2024, UKCGG/CanVIG 2026). Each
+  recommendation cites only the guidelines that cover it: `ALL_SOURCES` by
+  default, per-gene `refs` overrides, `ageGeneRefs`, `BRAIN_REFS`, and
   `boxA[gene].refs`. Founder-variant and clinical-suspicion recommendations cite
   CCO (tumour-detected variant section; General Criterion 6, clinical judgement).
+- `ukcggCategory2/3` + `ukcggCaveat()` — UKCGG 2026 routinely recommends follow-up
+  only for its Category 1 genes; when UKCGG is cited for a Category 2/3 gene, its
+  "not routinely recommended" / "unlikely to be indicated" position is added as a note.
   `refHtml()` renders a source without a `url` as an unlinked chip.
 
 Key functions:

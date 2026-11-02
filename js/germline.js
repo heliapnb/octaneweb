@@ -8,12 +8,12 @@ const REFS = {
     esmo:    { text: "ESMO 2022 (Kuzbari et al.)",              url: "https://doi.org/10.1016/j.annonc.2022.12.003" },
     cco:     { text: "CCO 2026 (HCT Eligibility Criteria v4.0)", url: "https://www.cancercareontario.ca/en/guidelines-advice/types-of-cancer/70161" },
     asco:    { text: "ASCO 2024 (Ricker et al.)",               url: "https://doi.org/10.1200/OP.24.00278" },
-    ukcgg:   { text: "UKCGG 2025 (McVeigh et al.)",             url: "https://doi.org/10.1136/jmg-2025-110947" },
-    ukcgg26: { text: "UKCGG 2026 (McVeigh et al.)",             url: "https://doi.org/10.1136/jmg-2026-111648" }
+    ukcgg:   { text: "UKCGG 2026 (McVeigh et al.)",             url: "https://doi.org/10.1136/jmg-2026-111648" }
 };
 
-// Guidelines that recommend germline confirmation for most main-list genes at any age:
-// ESMO Box 1, CCO v4.0 Table 3, ASCO 2024 Fig 3 and the UKCGG 2025 framework.
+// Guidelines covering most main-list genes: ESMO Box 1, CCO v4.0 Table 3, ASCO 2024
+// Fig 3 and the UKCGG/CanVIG 2026 framework (which recommends routine follow-up only
+// for its Category 1 genes — see ukcggCaveat below).
 const ALL_SOURCES = [REFS.esmo, REFS.cco, REFS.asco, REFS.ukcgg];
 
 // Step 3 — main gene list. A P/LP tumour variant in one of these genes is recommended
@@ -48,8 +48,7 @@ const mainGenes = {
         failText: 'MUTYH germline confirmation is recommended for biallelic variants only.'
     },
     NF1: {
-        refs: [REFS.esmo, REFS.cco, REFS.asco, REFS.ukcgg26],
-        note: 'Germline confirmation of NF1 tumour variants may be offered in any tumour context as per ESMO. Testing can also be limited to associated tumour types (ESMO on-tumour contexts: breast cancer, CNS cancer, GIST, glioma, nerve sheath tumour, peripheral nervous system, PHEO-PGL), or patients displaying clinical NF manifestations, if a more conservative approach is desired (ASCO 2024). The UKCGG/CanVIG framework (2026) groups NF1 with genes of high germline conversion rate and potential clinical/public health utility, for which follow-up germline testing is not routinely recommended, but may be appropriate in some circumstances.'
+        note: 'Germline confirmation of NF1 tumour variants may be offered in any tumour context as per ESMO. Testing can also be limited to associated tumour types (ESMO on-tumour contexts: breast cancer, CNS cancer, GIST, glioma, nerve sheath tumour, peripheral nervous system, PHEO-PGL), or patients displaying clinical NF manifestations, if a more conservative approach is desired (ASCO 2024).'
     },
     POLE: {
         note: 'CCO excludes endometrial cancer >50 years in their recommendation for germline confirmation of POLE tumour variants. However, this exclusion is not supported by ESMO’s dataset, and ESMO recommends germline confirmation for POLE tumour variants in all tumour contexts.'
@@ -76,8 +75,24 @@ const ageGeneRefs = {
 };
 const ageGenes = Object.keys(ageGeneRefs);
 
-// TP53 brain-tumour exclusion: "may be excluded" in ESMO and ASCO, excluded in UKCGG
+// TP53 brain-tumour exclusion: "may be excluded" in ESMO and ASCO; UKCGG notes low GCR
 const BRAIN_REFS = [REFS.esmo, REFS.asco, REFS.ukcgg];
+
+// UKCGG/CanVIG 2026 recommends routine germline follow-up only for its Category 1
+// genes (BRCA1, BRCA2, PALB2, MLH1, MSH2, MSH6, RAD51C, RAD51D, BRIP1). Where the tool
+// cites UKCGG for a Category 2 or 3 gene, its more conservative position is shown as a note.
+const ukcggCategory2 = [
+    "PMS2", "TSC2", "SDHA", "SDHB", "SDHC", "SDHAF2", "SDHD", "TMEM127", "MUTYH", "RET",
+    "CDKN2A", "ATM", "CHEK2", "BARD1", "NF1", "FLCN", "FH", "VHL", "POLE", "POLD1",
+    "SMARCA4", "SMARCB1", "DICER1", "PTCH1", "SUFU", "BAP1"
+];
+const ukcggCategory3 = ["TP53", "APC", "PTEN", "RB1"];
+
+function ukcggCaveat(gene) {
+    if (ukcggCategory2.includes(gene)) return `UKCGG 2026: ${gene} is grouped with genes of high germline conversion rate and context-dependent clinical utility; follow-up germline testing is not routinely recommended, but may be appropriate in some circumstances.`;
+    if (ukcggCategory3.includes(gene)) return `UKCGG 2026: ${gene} has a low germline conversion rate but high cancer risk; follow-up germline testing is unlikely to be indicated, but may be appropriate in some circumstances, and should be reserved for strong clinical suspicion (considering VAF, tumour fraction and phenotype).`;
+    return '';
+}
 
 // Box A — additional contexts supporting germline confirmation at any age
 const boxA = {
@@ -99,7 +114,7 @@ const allGenes = [...new Set([...Object.keys(mainGenes), ...ageGenes, ...otherGe
 // Flowchart questions shared across genes
 const Q_FOUNDER   = { key: 'founder', title: 'Founder variant', prompt: 'Is this a known founder variant?' };
 const Q_AGE       = { key: 'age30', title: 'Age at diagnosis', prompt: 'Was the patient 30 years old or younger at the time of this diagnosis?' };
-const Q_BRAIN     = { key: 'brain', title: 'Tumour type — TP53', prompt: 'Is this a brain tumour?', note: 'ESMO: brain tumours may be excluded from germline confirmation of TP53 tumour variants (also ASCO 2024; UKCGG 2025 excludes them).' };
+const Q_BRAIN     = { key: 'brain', title: 'Tumour type — TP53', prompt: 'Is this a brain tumour?', note: 'ESMO: brain tumours may be excluded from germline confirmation of TP53 tumour variants (also ASCO 2024; UKCGG 2026 notes a low germline conversion rate for TP53 in brain tumours).' };
 const Q_SUSPICION = { key: 'suspicion', title: 'Clinical suspicion', prompt: 'Are there any other clinical suspicions for a germline origin for the variant?' };
 
 function boxAQuestion(gene) {
@@ -226,7 +241,10 @@ function evaluateVariant(state) {
     const ask = q => { questions.push(q); return answers[q.key]; };
     const pending = () => ({ questions, result: { pending: true } });
     const done = result => ({ questions, result: { pending: false, ...result } });
-    const recommended = (sub, rationale, refs, note) => done({ rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub, rationale, refs, note });
+    const recommended = (sub, rationale, refs, note) => {
+        const caveat = refs.includes(REFS.ukcgg) ? ukcggCaveat(gene) : '';
+        return done({ rec: 'RECOMMENDED', color: 'green', icon: 'fa-check-circle', sub, rationale, refs, note: [note, caveat].filter(Boolean).join(' ') });
+    };
     const notRequired = (sub, rationale, refs = []) => done({ rec: 'NOT REQUIRED', color: 'red', icon: 'fa-ban', sub, rationale, refs });
 
     if (plpConfirmed === null) return { questions, result: null };
