@@ -70,20 +70,42 @@ Key functions:
 ### Tab 2 — Solid Tumour Variants, Germline Confirmation (`js/germline.js`)
 
 Takes gene + cDNA variants, looks each up in ClinVar, and returns RECOMMENDED /
-REVIEW-MDT / NOT OFFERED. Interpretation follows Kuzbari et al. (ESMO 2022),
-with local decisions layered on top.
+CLINICAL JUDGEMENT (NF1 only) / NOT REQUIRED by walking the **OCTANE solid-tumour flowchart** (source:
+`OCTANE criteria/OCTANE flowchart.pptx`, outside this repo): P/LP tumour variant →
+main gene list or known founder variant → age-dependent genes (≤30y, then Box A
+or clinical suspicion) → any other clinical suspicion. CCO eligibility is not
+asked here — that lives in Tab 1.
 
 Key data objects:
-- `step3Genes` — unconditionally recommended genes
-- `contextGenes` / `contextRationale` — genes gated on clinical context
-- `ageOrContextGenes` — recommended if tumour ≤30y **or** context met
-- `step8Genes` — age-gated (≤30 → REVIEW/MDT)
-- `allGenes` — autocomplete list; `REFS` — citation links
+- `mainGenes` — main list; entries with a `question` (CDH1 not breast, MEN1
+  NSCLC only, MUTYH biallelic, VHL not renal, NF1 manifestations/associated
+  tumour/suspicion) only qualify on that answer; NF1's "no" ends in CLINICAL
+  JUDGEMENT (`judgementText`); `note` holds footnotes (POLE, SMAD3)
+- `endorsement()` — builds rationale naming who recommends ("ESMO and CCO
+  recommend…"); ASCO's softer tiers (`ascoMayOffer`, `ascoLessConservative`) get
+  their own sentence, and UKCGG Category 2/3 genes are not counted as recommenders
+- `ageGenes` — APC, CDKN2A, PTEN, RB1, SMARCA4, TP53 (TP53 brain tumours skip
+  the age criterion); `boxA` — their any-age contexts
+- `otherGenes` — autocomplete/italics only; no special rules
+- `Q_*` — shared flowchart questions
+- `REFS` — sources (ESMO 2022, CCO v4.0, ASCO 2024, UKCGG/CanVIG 2026). Each
+  recommendation cites only the guidelines that cover it: `ALL_SOURCES` by
+  default, per-gene `refs` overrides, `ageGeneRefs`, `BRAIN_REFS`, and
+  `boxA[gene].refs`. Founder-variant and clinical-suspicion recommendations cite
+  CCO (tumour-detected variant section; General Criterion 6, clinical judgement).
+- `ukcggCategory2/3` + `ukcggCaveat()` — UKCGG 2026 routinely recommends follow-up
+  only for its Category 1 genes; when UKCGG is cited for a Category 2/3 gene, its
+  "not routinely recommended" / "unlikely to be indicated" position is added as a note.
+  `refHtml()` renders a source without a `url` as an unlinked chip.
 
 Key functions:
 - `lookupSingleVariant()` — ClinVar esearch + esummary (germline classification
   only; exact cDNA title match required)
-- `computeRecommendationForVariant()` — the decision tree
+- `evaluateVariant()` — walks the flowchart; returns the questions that apply
+  (rendered as Yes/No in the variant card) and the result
+- `variantNeedsCard()` (in `ui.js`) — a variant card only shows while input is
+  needed (loading, manual P/LP review, flowchart questions); otherwise the
+  summary table (whose ClinVar pill links to the record) covers it
 
 ### Tab 3 — Hematologic Malignancies (`js/hematologic.js`)
 

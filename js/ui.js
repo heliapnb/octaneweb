@@ -648,14 +648,9 @@ function setVariantPLP(idx, confirmed) {
     updateResultsPanel();
 }
 
-function setVariantContextAnswer(idx, val) {
-    window.variantStates[idx].contextAnswer = val;
+function setVariantAnswer(idx, key, val) {
+    window.variantStates[idx].answers[key] = val;
     renderVariantCards();
-    updateResultsPanel();
-}
-
-function setVariantAge(idx, age) {
-    window.variantStates[idx].ageInput = age;
     updateResultsPanel();
 }
 
@@ -664,7 +659,15 @@ function setVariantAge(idx, age) {
 function renderVariantCards() {
     const container = document.getElementById('gVariantCards');
     if (!container) return;
-    container.innerHTML = window.variantStates.map((s, i) => renderVariantCard(s, i)).join('');
+    container.innerHTML = window.variantStates.map((s, i) => variantNeedsCard(s) ? renderVariantCard(s, i) : '').join('');
+}
+
+// A card only appears while a variant needs input — lookup in progress or failed,
+// manual P/LP review, or flowchart questions. Otherwise the summary table covers it.
+function variantNeedsCard(state) {
+    if (!state.clinvarDone && state.plpConfirmed === null) return true;
+    if (['error', 'none', 'conflicting', 'unknown'].includes(state.clinvarSignificance)) return true;
+    return evaluateVariant(state).questions.length > 0;
 }
 
 function renderVariantCard(state, idx) {
@@ -711,7 +714,7 @@ function renderVariantCard(state, idx) {
             </div>`;
     }
 
-    // ── Context / age section (only if P/LP confirmed) ──
+    // ── Flowchart questions (only if P/LP confirmed) ──
     const contextHtml = plpConfirmed === true ? renderVariantContextSection(state, idx) : '';
 
     return `
@@ -730,58 +733,25 @@ function renderVariantCard(state, idx) {
         </div>`;
 }
 
+// The flowchart (evaluateVariant) decides which questions apply; render them in order.
+// Footnotes on the recommendation appear in the summary table's rationale instead.
 function renderVariantContextSection(state, idx) {
-    const { gene, coding, contextAnswer, ageInput } = state;
-    const founderAPC = 'c.3920T>A', founderTP53 = 'c.1010G>A';
-
-    if (gene === 'VHL') {
-        return renderInlineYesNo(idx, 'Is the tumour Renal Cell Carcinoma?', ['Renal Cell Carcinoma'], contextAnswer);
-    }
-    if (ageOrContextGenes.includes(gene)) {
-        return renderInlineYesNo(idx, `Criteria supporting germline confirmation — ${gene}`, contextGenes[gene], contextAnswer)
-             + renderAgeInput(idx, ageInput);
-    }
-    if (contextGenes[gene]) {
-        return renderInlineYesNo(idx, `Criteria supporting germline confirmation — ${gene}`, contextGenes[gene], contextAnswer);
-    }
-    if (gene === 'APC' && !coding.includes(founderAPC)) {
-        return renderAgeInput(idx, ageInput);
-    }
-    if (gene === 'TP53' && !coding.includes(founderTP53)) {
-        return renderAgeInput(idx, ageInput);
-    }
-    if (gene === 'EGFR' && coding.includes('c.2369C>T')) {
-        return renderInlineYesNo(idx, 'Clinical Context — EGFR c.2369C>T', ['Patient is TKI Treatment-Naïve'], contextAnswer) +
-            renderAgeInput(idx, ageInput);
-    }
-    if (step8Genes.includes(gene)) {
-        return renderAgeInput(idx, ageInput);
-    }
-    return '';
+    return evaluateVariant(state).questions.map(q => renderQuestion(idx, q, state.answers[q.key])).join('');
 }
 
-function renderInlineYesNo(idx, title, criteria, currentAnswer) {
-    const bullets = criteria.map(c => `<li>${c}</li>`).join('');
-    const yesActive = currentAnswer === 'yes';
-    const noActive  = currentAnswer === 'no';
+function renderQuestion(idx, q, answer) {
+    const bullets = q.criteria ? `<ul class="o-qcrit">${q.criteria.map(c => `<li>${c}</li>`).join('')}</ul>` : '';
+    const note = q.note ? `<p class="o-cv-note">${italicizeGenes(q.note)}</p>` : '';
     return `
         <div class="o-vcard-section">
-            <div class="o-qtitle">${title}</div>
-            <ul class="o-qcrit">${bullets}</ul>
-            <p class="o-q-prompt" style="margin-bottom:10px;">Does this case meet one or more of the above criteria?</p>
+            <div class="o-qtitle">${q.title}</div>
+            ${bullets}
+            <p class="o-q-prompt" style="margin-bottom:10px;">${italicizeGenes(q.prompt)}</p>
+            ${note}
             <div class="o-yn">
-                <button onclick="setVariantContextAnswer(${idx}, 'yes')" class="o-yn-btn${yesActive ? ' is-yes-on' : ''}">Yes</button>
-                <button onclick="setVariantContextAnswer(${idx}, 'no')" class="o-yn-btn${noActive ? ' is-no-on' : ''}">No</button>
+                <button onclick="setVariantAnswer(${idx}, '${q.key}', 'yes')" class="o-yn-btn${answer === 'yes' ? ' is-yes-on' : ''}">Yes</button>
+                <button onclick="setVariantAnswer(${idx}, '${q.key}', 'no')" class="o-yn-btn${answer === 'no' ? ' is-no-on' : ''}">No</button>
             </div>
-        </div>`;
-}
-
-function renderAgeInput(idx, ageInput) {
-    return `
-        <div class="o-vcard-section">
-            <div class="o-qtitle">Age at diagnosis</div>
-            <input type="number" value="${ageInput}" placeholder="e.g. 28" min="1" max="120"
-                oninput="setVariantAge(${idx}, this.value)" class="o-age-input">
         </div>`;
 }
 
@@ -802,7 +772,7 @@ function updateResultsPanel() {
     const states = window.variantStates;
     if (!states || !states.length) return;
 
-    const pairs = states.map(s => ({ state: s, result: computeRecommendationForVariant(s) }));
+    const pairs = states.map(s => ({ state: s, result: evaluateVariant(s).result }));
     const anyComputed = pairs.some(p => p.result && !p.result.pending);
     if (!anyComputed) return;
 
@@ -811,11 +781,17 @@ function updateResultsPanel() {
 
     // ── Summary table rows ──
     const rows = pairs.map(({ state, result }) => {
-        const { gene, coding, clinvarClass } = state;
+        const { gene, coding, clinvarClass, clinvarId } = state;
 
-        const cvCell = clinvarClass
+        // The pill links to the ClinVar record (the variant card is often hidden)
+        const pill = clinvarClass
             ? `<span class="o-cv-pill ${getClassColor(clinvarClass)}" title="${clinvarClass}">${abbreviateClinvar(clinvarClass)}</span>`
-            : `<span style="color:var(--mute-light); font-style:italic;">—</span>`;
+            : '';
+        const cvCell = !clinvarClass
+            ? `<span style="color:var(--mute-light); font-style:italic;">—</span>`
+            : clinvarId
+                ? `<a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${clinvarId}/" target="_blank" rel="noopener" title="Open ClinVar record">${pill}</a>`
+                : pill;
 
         let recCell;
         if (!result) {
@@ -825,10 +801,11 @@ function updateResultsPanel() {
         } else {
             const badge = `<span class="o-td-badge ${recBadgeClass(result.color)}">${result.rec}</span>`;
             const rationale = result.rationale ? `<div class="rationale">${italicizeGenes(result.rationale)}</div>` : '';
+            const note = result.note ? `<div class="rationale"><strong>Note:</strong> ${italicizeGenes(result.note)}</div>` : '';
             const refs = result.refs?.length
-                ? `<div class="refs">${result.refs.map(r => `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`).join('')}</div>`
+                ? `<div class="refs">${result.refs.map(refHtml).join('')}</div>`
                 : '';
-            recCell = badge + rationale + refs;
+            recCell = badge + rationale + note + refs;
         }
 
         return `<tr>
@@ -843,25 +820,31 @@ function updateResultsPanel() {
     const resolved = pairs.filter(p => p.result && !p.result.pending);
     const allResolved = resolved.length === pairs.length;
     const recommended = resolved.filter(p => p.result.rec === 'RECOMMENDED');
-    const mdt = resolved.filter(p => p.result.rec === 'REVIEW / MDT');
-    const notOffered = resolved.filter(p => p.result.rec === 'NOT OFFERED');
+    const judgement = resolved.filter(p => p.result.rec === 'CLINICAL JUDGEMENT');
+    const notRequired = resolved.filter(p => p.result.rec === 'NOT REQUIRED');
+    const genes = list => list.map(p => p.state.gene).join(', ');
+    const summary = () => [
+        recommended.length && `Recommended: ${genes(recommended)}`,
+        judgement.length && `Clinical judgement: ${genes(judgement)}`,
+        notRequired.length && `Not required: ${genes(notRequired)}`
+    ].filter(Boolean).join(' · ');
 
     let bannerClass, bannerLabel, bannerTitle, bannerBody;
     if (!allResolved) {
         bannerClass = 'is-pending'; bannerLabel = 'Pending';
         bannerTitle = 'Awaiting Input';
-        bannerBody = 'Complete context questions for all variants to see the final recommendation.';
-    } else if (recommended.length || mdt.length) {
+        bannerBody = 'Answer the questions for each variant to see the final recommendation.';
+    } else if (recommended.length) {
         bannerClass = 'is-success'; bannerLabel = 'Recommended';
         bannerTitle = 'Germline Confirmation Recommended';
-        const parts = [];
-        if (recommended.length) parts.push(`Recommended: ${recommended.map(p => p.state.gene).join(', ')}`);
-        if (mdt.length) parts.push(`MDT review: ${mdt.map(p => p.state.gene).join(', ')}`);
-        if (notOffered.length) parts.push(`Not offered: ${notOffered.map(p => p.state.gene).join(', ')}`);
-        bannerBody = parts.join(' · ');
+        bannerBody = summary();
+    } else if (judgement.length) {
+        bannerClass = 'is-warn'; bannerLabel = 'Clinical Judgement';
+        bannerTitle = 'Refer to Clinical Judgement';
+        bannerBody = summary();
     } else {
-        bannerClass = 'is-danger'; bannerLabel = 'Not Offered';
-        bannerTitle = 'Germline Confirmation Not Offered';
+        bannerClass = 'is-danger'; bannerLabel = 'Not Required';
+        bannerTitle = 'Germline Follow-up Not Required';
         bannerBody = 'None of the identified variants meet criteria for germline confirmation.';
     }
 
@@ -879,7 +862,7 @@ function updateResultsPanel() {
     resolved.forEach(p => (p.result.refs || []).forEach(r => {
         if (!seenRefs.has(r.text)) { seenRefs.add(r.text); allRefs.push(r); }
     }));
-    const refLinks = allRefs.map(r => `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`).join('');
+    const refLinks = allRefs.map(refHtml).join('');
     const refBlock = refLinks ? `<div class="o-banner-refs">${refLinks}</div>` : '';
 
     content.innerHTML = `
@@ -921,6 +904,13 @@ const _genePattern = new RegExp(
 function italicizeGenes(text) {
     if (!text) return text;
     return text.replace(_genePattern, '<i>$1</i>');
+}
+
+// A citation chip — linked when the source has a public URL, plain text otherwise
+function refHtml(r) {
+    return r.url
+        ? `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`
+        : `<span class="o-ref">${r.text}</span>`;
 }
 
 function recBadgeClass(color) {

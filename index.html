@@ -872,20 +872,7 @@
       color: var(--mute);
     }
 
-    /* ─── Age input + checkbox row ─────────────────────────── */
-    .o-age-input {
-      width: 100%;
-      padding: 10px 14px;
-      font-family: var(--font-body);
-      font-size: 14px;
-      color: var(--ink);
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    .o-age-input:focus { border-color: var(--ink); }
-
+    /* ─── Checkbox row ─────────────────────────────────────── */
     .o-cb-row {
       display: flex;
       align-items: center;
@@ -1048,11 +1035,12 @@
       background: var(--bg-card);
       letter-spacing: 0.02em;
     }
-    .o-ref:hover {
+    a.o-ref:hover {
       border-color: var(--info);
       background: #f5f8ff;
       text-decoration: none;
     }
+    span.o-ref { color: var(--ink-soft); }  /* unlinked source (no public URL) */
 
     /* ─── Overall recommendation banner ────────────────────── */
     .o-banner {
