@@ -794,7 +794,7 @@ function updateResultsPanel() {
             const rationale = result.rationale ? `<div class="rationale">${italicizeGenes(result.rationale)}</div>` : '';
             const note = result.note ? `<div class="rationale"><strong>Note:</strong> ${italicizeGenes(result.note)}</div>` : '';
             const refs = result.refs?.length
-                ? `<div class="refs">${result.refs.map(r => `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`).join('')}</div>`
+                ? `<div class="refs">${result.refs.map(refHtml).join('')}</div>`
                 : '';
             recCell = badge + rationale + note + refs;
         }
@@ -844,7 +844,7 @@ function updateResultsPanel() {
     resolved.forEach(p => (p.result.refs || []).forEach(r => {
         if (!seenRefs.has(r.text)) { seenRefs.add(r.text); allRefs.push(r); }
     }));
-    const refLinks = allRefs.map(r => `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`).join('');
+    const refLinks = allRefs.map(refHtml).join('');
     const refBlock = refLinks ? `<div class="o-banner-refs">${refLinks}</div>` : '';
 
     content.innerHTML = `
@@ -886,6 +886,13 @@ const _genePattern = new RegExp(
 function italicizeGenes(text) {
     if (!text) return text;
     return text.replace(_genePattern, '<i>$1</i>');
+}
+
+// A citation chip — linked when the source has a public URL, plain text otherwise
+function refHtml(r) {
+    return r.url
+        ? `<a href="${r.url}" target="_blank" rel="noopener" class="o-ref">${r.text}</a>`
+        : `<span class="o-ref">${r.text}</span>`;
 }
 
 function recBadgeClass(color) {

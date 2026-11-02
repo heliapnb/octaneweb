@@ -3,30 +3,40 @@
 // or known founder variant → age-dependent genes (≤30y, Box A) → other clinical
 // suspicion. These objects encode clinical recommendations — see CLAUDE.md.
 
-// Reference links
+// Reference links. CCO v4.0 has no public URL yet, so it is cited as text only.
 const REFS = {
-    kuzbari: { text: "Kuzbari et al., ESMO 2022", url: "https://doi.org/10.1016/j.annonc.2022.12.003" },
-    clark:   { text: "Clark et al., JCO 2019",    url: "https://doi.org/10.1200/PO.19.00076" },
-    klek:    { text: "Klek et al., JNCI 2020",    url: "https://doi.org/10.1093/jncics/pkaa018" },
-    ricker:  { text: "Ricker et al., ASCO 2024",  url: "https://doi.org/10.1200/OP.24.00278" }
+    esmo:  { text: "ESMO 2022 (Kuzbari et al.)",              url: "https://doi.org/10.1016/j.annonc.2022.12.003" },
+    cco:   { text: "CCO 2026 (HCT Eligibility Criteria v4.0)" },
+    asco:  { text: "ASCO 2024 (Ricker et al.)",               url: "https://doi.org/10.1200/OP.24.00278" },
+    ukcgg: { text: "UKCGG 2025 (McVeigh et al.)",             url: "https://doi.org/10.1136/jmg-2025-110947" },
+    clark: { text: "Clark et al., JCO 2019",                  url: "https://doi.org/10.1200/PO.19.00076" },
+    klek:  { text: "Klek et al., JNCI 2020",                  url: "https://doi.org/10.1093/jncics/pkaa018" }
 };
+
+// Guidelines that recommend germline confirmation for most main-list genes at any age:
+// ESMO Box 1, CCO v4.0 Table 3, ASCO 2024 Fig 3 and the UKCGG 2025 framework.
+const ALL_SOURCES = [REFS.esmo, REFS.cco, REFS.asco, REFS.ukcgg];
 
 // Step 3 — main gene list. A P/LP tumour variant in one of these genes is recommended
 // for germline confirmation. A gene with a `question` is only on the list when that
 // question is answered `passWhen`; otherwise the variant continues down the flowchart.
-// `note` is an informational footnote shown alongside the recommendation.
+// `refs` overrides ALL_SOURCES where fewer guidelines include the gene; `note` is an
+// informational footnote shown alongside the recommendation.
 const mainGenes = {
-    ATM: {}, BAP1: {}, BARD1: {}, BRCA1: {}, BRCA2: {}, BRIP1: {}, CHEK2: {},
+    ATM: {}, BARD1: {}, BRCA1: {}, BRCA2: {}, BRIP1: {}, CHEK2: {},
     DICER1: {}, FH: {}, FLCN: {}, MLH1: {}, MSH2: {}, MSH6: {}, PALB2: {}, PMS2: {},
     POLD1: {}, PTCH1: {}, RAD51C: {}, RAD51D: {}, RET: {}, SDHA: {}, SDHAF2: {},
     SDHB: {}, SDHC: {}, SDHD: {}, SMARCB1: {}, SUFU: {}, TMEM127: {}, TSC2: {},
+    BAP1: { refs: [REFS.esmo, REFS.asco, REFS.ukcgg] },  // not in CCO Table 3
     CDH1: {
+        refs: [REFS.esmo],
         question: { key: 'breast', title: 'Tumour type — CDH1', prompt: 'Is this a breast cancer?' },
         passWhen: 'no',
         passText: 'ESMO recommends germline confirmation for CDH1 tumour variants in all tumour contexts excluding breast cancer.',
         failText: 'ESMO does not recommend germline confirmation of CDH1 tumour variants in breast cancer.'
     },
     MEN1: {
+        refs: [REFS.esmo],
         question: { key: 'nsclc', title: 'Tumour type — MEN1', prompt: 'Is this a non-small cell lung carcinoma?' },
         passWhen: 'yes',
         passText: 'ESMO’s data supports germline confirmation of MEN1 tumour variants in non-small cell lung carcinoma only, at any age.',
@@ -39,13 +49,13 @@ const mainGenes = {
         failText: 'MUTYH germline confirmation is recommended for biallelic variants only.'
     },
     NF1: {
-        refs: [REFS.kuzbari, REFS.ricker],
         note: 'Germline confirmation of NF1 tumour variants may be offered in any tumour context as per ESMO. Testing can also be limited to associated tumour types (ESMO on-tumour contexts: breast cancer, CNS cancer, GIST, glioma, nerve sheath tumour, peripheral nervous system, PHEO-PGL), or patients displaying clinical NF manifestations, if a more conservative approach is desired (ASCO 2024, UKCGG 2025).'
     },
     POLE: {
         note: 'CCO excludes endometrial cancer >50 years in their recommendation for germline confirmation of POLE tumour variants. However, this exclusion is not supported by ESMO’s dataset, and ESMO recommends germline confirmation for POLE tumour variants in all tumour contexts.'
     },
     SMAD3: {
+        refs: [REFS.esmo, REFS.asco],  // not in CCO Table 3 or UKCGG
         note: 'ESMO recommends germline confirmation of SMAD3 tumour variants in any tumour context; however, CCO does not include SMAD3 variants in their recommendations. Although not cancer-related, SMAD3 has a pan-tumour GCR of 13% and is highly actionable for Loeys-Dietz syndrome 3 and non-syndromic thoracic aortic aneurysms.'
     },
     VHL: {
@@ -58,13 +68,22 @@ const mainGenes = {
 
 // Step 4 — recommended if diagnosed ≤30y, or a Box A criterion / clinical suspicion is met.
 // TP53 in a brain tumour skips the age criterion (brain tumours excluded, per ESMO).
-const ageGenes = ["APC", "CDKN2A", "PTEN", "RB1", "SMARCA4", "TP53"];
+// Values are the guidelines supporting the age criterion: ASCO 2024 limits CDKN2A and
+// SMARCA4 to associated tumour types even under 30, so it is not cited for those two.
+const ageGeneRefs = {
+    APC: ALL_SOURCES, CDKN2A: [REFS.esmo, REFS.cco, REFS.ukcgg], PTEN: ALL_SOURCES,
+    RB1: ALL_SOURCES, SMARCA4: [REFS.esmo, REFS.cco, REFS.ukcgg], TP53: ALL_SOURCES
+};
+const ageGenes = Object.keys(ageGeneRefs);
+
+// TP53 brain-tumour exclusion: "may be excluded" in ESMO and ASCO, excluded in UKCGG
+const BRAIN_REFS = [REFS.esmo, REFS.asco, REFS.ukcgg];
 
 // Box A — additional contexts supporting germline confirmation at any age
 const boxA = {
-    APC:    ["Non-small cell lung carcinoma, at any age (ESMO)"],
-    CDKN2A: ["Melanoma, at any age (ESMO)", "Breast cancer, at any age (ESMO)", "Pancreatic adenocarcinoma (ASCO 2024)"],
-    TP53:   ["Soft tissue tumour, at any age (ESMO)", "Embryonal tumour, at any age (ESMO)"]
+    APC:    { refs: [REFS.esmo], criteria: ["Non-small cell lung carcinoma, at any age (ESMO)"] },
+    CDKN2A: { refs: [REFS.esmo, REFS.asco], criteria: ["Melanoma, at any age (ESMO)", "Breast cancer, at any age (ESMO)", "Pancreatic adenocarcinoma (ASCO 2024)"] },
+    TP53:   { refs: [REFS.esmo], criteria: ["Soft tissue tumour, at any age (ESMO)", "Embryonal tumour, at any age (ESMO)"] }
 };
 
 // Genes outside both lists, kept for autocomplete and gene-name italics only —
@@ -80,11 +99,11 @@ const allGenes = [...new Set([...Object.keys(mainGenes), ...ageGenes, ...otherGe
 // Flowchart questions shared across genes
 const Q_FOUNDER   = { key: 'founder', title: 'Founder variant', prompt: 'Is this a known founder variant?' };
 const Q_AGE       = { key: 'age30', title: 'Age at diagnosis', prompt: 'Was the patient 30 years old or younger at the time of this diagnosis?' };
-const Q_BRAIN     = { key: 'brain', title: 'Tumour type — TP53', prompt: 'Is this a brain tumour?', note: 'ESMO: brain tumours may be excluded from germline confirmation of TP53 tumour variants.' };
+const Q_BRAIN     = { key: 'brain', title: 'Tumour type — TP53', prompt: 'Is this a brain tumour?', note: 'ESMO: brain tumours may be excluded from germline confirmation of TP53 tumour variants (also ASCO 2024; UKCGG 2025 excludes them).' };
 const Q_SUSPICION = { key: 'suspicion', title: 'Clinical suspicion', prompt: 'Are there any other clinical suspicions for a germline origin for the variant?' };
 
 function boxAQuestion(gene) {
-    const criteria = boxA[gene];
+    const criteria = boxA[gene]?.criteria;
     if (!criteria) return { key: 'boxA', title: `Additional criteria — ${gene}`, prompt: 'Are there any clinical suspicions for a germline origin for the variant?' };
     return {
         key: 'boxA', title: `Additional criteria — ${gene}`,
@@ -219,20 +238,22 @@ function evaluateVariant(state) {
     // Step 3 — main gene list, or a known founder variant
     const rule = mainGenes[gene];
     let failText = `${gene} is not on the main germline confirmation gene list.`;
+    let failRefs = [];
     if (rule) {
-        const refs = rule.refs || [REFS.kuzbari];
+        const refs = rule.refs || ALL_SOURCES;
         if (!rule.question) return recommended('Gene on the main germline confirmation list.',
             `${gene} is on the list of genes for which germline confirmation of a P/LP tumour variant is recommended.`, refs, rule.note);
         const ans = ask(rule.question);
         if (!ans) return pending();
         if (ans === rule.passWhen) return recommended('Gene on the main germline confirmation list.', rule.passText, refs);
         failText = rule.failText;
+        failRefs = refs;
     }
 
     const founder = ask(Q_FOUNDER);
     if (!founder) return pending();
     if (founder === 'yes') return recommended('Known founder variant.',
-        'The variant is a known founder variant; germline confirmation is recommended.', [REFS.kuzbari, REFS.clark, REFS.klek]);
+        'The variant is a known founder variant; germline confirmation is recommended.', [REFS.clark, REFS.klek]);
 
     // Step 4 — age-dependent genes
     if (ageGenes.includes(gene)) {
@@ -246,16 +267,17 @@ function evaluateVariant(state) {
             const age = ask(Q_AGE);
             if (!age) return pending();
             if (age === 'yes') return recommended('Tumour diagnosed at ≤30 years.',
-                `Germline confirmation is recommended for ${gene} tumour variants in tumours diagnosed at or below 30 years.`, [REFS.kuzbari]);
+                `Germline confirmation is recommended for ${gene} tumour variants in tumours diagnosed at or below 30 years.`, ageGeneRefs[gene]);
         }
         const extra = ask(boxAQuestion(gene));
         if (!extra) return pending();
         if (extra === 'yes') return recommended('Additional criterion or clinical suspicion met.',
             `The ${gene} variant meets an additional criterion supporting germline confirmation, or there is a clinical suspicion of germline origin.`,
-            gene === 'CDKN2A' ? [REFS.kuzbari, REFS.ricker] : [REFS.kuzbari]);
+            boxA[gene]?.refs || []);
         const ageText = ageApplies ? 'the tumour was diagnosed after age 30' : 'brain tumours are excluded from the age criterion';
         return notRequired('No qualifying criteria met.',
-            `${gene}: ${ageText}, the variant is not a known founder variant, and no additional criterion or clinical suspicion of germline origin was identified.`, [REFS.kuzbari]);
+            `${gene}: ${ageText}, the variant is not a known founder variant, and no additional criterion or clinical suspicion of germline origin was identified.`,
+            ageApplies ? ageGeneRefs[gene] : BRAIN_REFS);
     }
 
     // Any other gene (or a main-list gene whose condition was not met)
@@ -264,5 +286,5 @@ function evaluateVariant(state) {
     if (suspicion === 'yes') return recommended('Clinical suspicion of germline origin.',
         'There is a clinical suspicion of a germline origin for the variant; germline confirmation is recommended.', []);
     return notRequired('No qualifying criteria met.',
-        `${failText} The variant is not a known founder variant, and there is no other clinical suspicion of germline origin.`);
+        `${failText} The variant is not a known founder variant, and there is no other clinical suspicion of germline origin.`, failRefs);
 }

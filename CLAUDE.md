@@ -83,7 +83,12 @@ Key data objects:
 - `ageGenes` — APC, CDKN2A, PTEN, RB1, SMARCA4, TP53 (TP53 brain tumours skip
   the age criterion); `boxA` — their any-age contexts
 - `otherGenes` — autocomplete/italics only; no special rules
-- `Q_*` — shared flowchart questions; `REFS` — citation links
+- `Q_*` — shared flowchart questions
+- `REFS` — sources (ESMO 2022, CCO v4.0, ASCO 2024, UKCGG 2025; Clark/Klek for
+  founder variants). Each recommendation cites only the guidelines that support
+  it: `ALL_SOURCES` by default, per-gene `refs` overrides, `ageGeneRefs`,
+  `BRAIN_REFS`, and `boxA[gene].refs`. CCO v4.0 has no public URL, so it renders
+  as an unlinked chip.
 
 Key functions:
 - `lookupSingleVariant()` — ClinVar esearch + esummary (germline classification
