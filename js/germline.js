@@ -3,14 +3,13 @@
 // or known founder variant → age-dependent genes (≤30y, Box A) → other clinical
 // suspicion. These objects encode clinical recommendations — see CLAUDE.md.
 
-// Reference links. CCO v4.0 has no public URL yet, so it is cited as text only.
+// Reference links
 const REFS = {
-    esmo:  { text: "ESMO 2022 (Kuzbari et al.)",              url: "https://doi.org/10.1016/j.annonc.2022.12.003" },
-    cco:   { text: "CCO 2026 (HCT Eligibility Criteria v4.0)" },
-    asco:  { text: "ASCO 2024 (Ricker et al.)",               url: "https://doi.org/10.1200/OP.24.00278" },
-    ukcgg: { text: "UKCGG 2025 (McVeigh et al.)",             url: "https://doi.org/10.1136/jmg-2025-110947" },
-    clark: { text: "Clark et al., JCO 2019",                  url: "https://doi.org/10.1200/PO.19.00076" },
-    klek:  { text: "Klek et al., JNCI 2020",                  url: "https://doi.org/10.1093/jncics/pkaa018" }
+    esmo:    { text: "ESMO 2022 (Kuzbari et al.)",              url: "https://doi.org/10.1016/j.annonc.2022.12.003" },
+    cco:     { text: "CCO 2026 (HCT Eligibility Criteria v4.0)", url: "https://www.cancercareontario.ca/en/guidelines-advice/types-of-cancer/70161" },
+    asco:    { text: "ASCO 2024 (Ricker et al.)",               url: "https://doi.org/10.1200/OP.24.00278" },
+    ukcgg:   { text: "UKCGG 2025 (McVeigh et al.)",             url: "https://doi.org/10.1136/jmg-2025-110947" },
+    ukcgg26: { text: "UKCGG 2026 (McVeigh et al.)",             url: "https://doi.org/10.1136/jmg-2026-111648" }
 };
 
 // Guidelines that recommend germline confirmation for most main-list genes at any age:
@@ -49,7 +48,8 @@ const mainGenes = {
         failText: 'MUTYH germline confirmation is recommended for biallelic variants only.'
     },
     NF1: {
-        note: 'Germline confirmation of NF1 tumour variants may be offered in any tumour context as per ESMO. Testing can also be limited to associated tumour types (ESMO on-tumour contexts: breast cancer, CNS cancer, GIST, glioma, nerve sheath tumour, peripheral nervous system, PHEO-PGL), or patients displaying clinical NF manifestations, if a more conservative approach is desired (ASCO 2024, UKCGG 2025).'
+        refs: [REFS.esmo, REFS.cco, REFS.asco, REFS.ukcgg26],
+        note: 'Germline confirmation of NF1 tumour variants may be offered in any tumour context as per ESMO. Testing can also be limited to associated tumour types (ESMO on-tumour contexts: breast cancer, CNS cancer, GIST, glioma, nerve sheath tumour, peripheral nervous system, PHEO-PGL), or patients displaying clinical NF manifestations, if a more conservative approach is desired (ASCO 2024). The UKCGG/CanVIG framework (2026) groups NF1 with genes of high germline conversion rate and potential clinical/public health utility, for which follow-up germline testing is not routinely recommended, but may be appropriate in some circumstances.'
     },
     POLE: {
         note: 'CCO excludes endometrial cancer >50 years in their recommendation for germline confirmation of POLE tumour variants. However, this exclusion is not supported by ESMO’s dataset, and ESMO recommends germline confirmation for POLE tumour variants in all tumour contexts.'
@@ -253,7 +253,7 @@ function evaluateVariant(state) {
     const founder = ask(Q_FOUNDER);
     if (!founder) return pending();
     if (founder === 'yes') return recommended('Known founder variant.',
-        'The variant is a known founder variant; germline confirmation is recommended.', [REFS.clark, REFS.klek]);
+        'The variant is a known founder variant; germline confirmation is recommended.', [REFS.cco]);
 
     // Step 4 — age-dependent genes
     if (ageGenes.includes(gene)) {
@@ -273,7 +273,7 @@ function evaluateVariant(state) {
         if (!extra) return pending();
         if (extra === 'yes') return recommended('Additional criterion or clinical suspicion met.',
             `The ${gene} variant meets an additional criterion supporting germline confirmation, or there is a clinical suspicion of germline origin.`,
-            boxA[gene]?.refs || []);
+            [...(boxA[gene]?.refs || []), REFS.cco]);
         const ageText = ageApplies ? 'the tumour was diagnosed after age 30' : 'brain tumours are excluded from the age criterion';
         return notRequired('No qualifying criteria met.',
             `${gene}: ${ageText}, the variant is not a known founder variant, and no additional criterion or clinical suspicion of germline origin was identified.`,
@@ -284,7 +284,7 @@ function evaluateVariant(state) {
     const suspicion = ask(Q_SUSPICION);
     if (!suspicion) return pending();
     if (suspicion === 'yes') return recommended('Clinical suspicion of germline origin.',
-        'There is a clinical suspicion of a germline origin for the variant; germline confirmation is recommended.', []);
+        'There is a clinical suspicion of a germline origin for the variant; germline confirmation is recommended.', [REFS.cco]);
     return notRequired('No qualifying criteria met.',
         `${failText} The variant is not a known founder variant, and there is no other clinical suspicion of germline origin.`, failRefs);
 }

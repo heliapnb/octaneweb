@@ -84,11 +84,12 @@ Key data objects:
   the age criterion); `boxA` — their any-age contexts
 - `otherGenes` — autocomplete/italics only; no special rules
 - `Q_*` — shared flowchart questions
-- `REFS` — sources (ESMO 2022, CCO v4.0, ASCO 2024, UKCGG 2025; Clark/Klek for
-  founder variants). Each recommendation cites only the guidelines that support
-  it: `ALL_SOURCES` by default, per-gene `refs` overrides, `ageGeneRefs`,
-  `BRAIN_REFS`, and `boxA[gene].refs`. CCO v4.0 has no public URL, so it renders
-  as an unlinked chip.
+- `REFS` — sources (ESMO 2022, CCO v4.0, ASCO 2024, UKCGG 2025, UKCGG 2026).
+  Each recommendation cites only the guidelines that support it: `ALL_SOURCES`
+  by default, per-gene `refs` overrides, `ageGeneRefs`, `BRAIN_REFS`, and
+  `boxA[gene].refs`. Founder-variant and clinical-suspicion recommendations cite
+  CCO (tumour-detected variant section; General Criterion 6, clinical judgement).
+  `refHtml()` renders a source without a `url` as an unlinked chip.
 
 Key functions:
 - `lookupSingleVariant()` — ClinVar esearch + esummary (germline classification
