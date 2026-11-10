@@ -164,9 +164,6 @@ function boxAQuestion(gene) {
     };
 }
 
-// Shared mutable state — read/written by the UI layer
-window.variantStates = [];
-
 // --- GERMLINE LOGIC (pure, no DOM) ---
 
 // NCBI E-utilities rate limit is 3 requests/sec without an API key.

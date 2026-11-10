@@ -10,6 +10,12 @@ Search a patient's diagnosis and check which CCO criteria apply. Any single crit
 **Tab 2 — Germline Confirmation**
 Enter a gene and variant (cDNA notation) to get a recommendation on germline confirmation of the tumour variant — RECOMMENDED or NOT REQUIRED — based on the OCTANE solid-tumour flowchart (informed by ESMO 2022, ASCO 2024 and CCO).
 
+**Tab 3 — Local Workflow**
+See the solid-tumour decision tree and edit it to match local criteria: add or remove genes, set or remove conditions for a gene, change the age cutoff or Box A. Run variants against your version; results and the PDF show which workflow was used and how it differs from the original. Save workflows on your computer (in the browser, with one as the default) or download them as a file to keep or share, and reset to the original at any time. No account needed, and nothing is sent anywhere.
+
+**Tab 4 — Hematologic Malignancies**
+Select a hematologic diagnosis and family history to see the recommended germline testing panel.
+
 ## How to run
 
 No installation needed. Open `index.html` in a browser, or serve locally:
@@ -24,6 +30,10 @@ python3 -m http.server 8000
 index.html              — UI layout
 js/eligibility.js       — Eligibility criteria data and logic
 js/germline.js          — Germline confirmation data and logic
+js/hematologic.js       — Hematologic malignancy panel logic
+js/workflow.js          — Local workflow: editable flowchart, evaluation, saving
+js/ui.js                — Page rendering for the eligibility, germline and hematologic tabs
+js/workflow-ui.js       — Local workflow tab: decision tree and editor
 js/app.js               — Tab navigation
 resources/              — Source PDFs (CCO eligibility criteria, germline workflow)
 ```

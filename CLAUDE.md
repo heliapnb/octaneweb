@@ -40,15 +40,18 @@ index.html          — HTML structure, all CSS, and the prototype disclaimer
 js/eligibility.js   — Eligibility tab: criteria data, synonyms, search logic
 js/germline.js      — Germline tab: gene data, ClinVar lookup, decision logic
 js/hematologic.js   — Hematologic tab: HHM panel matrix, features, specimen rules
-js/ui.js            — All DOM rendering for the three tabs (no clinical logic)
+js/workflow.js      — Local Workflow tab: editable flowchart model, evaluation, validation, saving
+js/ui.js            — DOM rendering for the eligibility, germline and hematologic tabs (no clinical logic)
+js/workflow-ui.js   — Local Workflow tab DOM: decision tree, editor, save/load
 js/app.js           — Prototype disclaimer + tab navigation (switchTab)
 resources/          — Source PDFs/criteria documents (gitignored, local only)
 ```
 
 Scripts load at the bottom of `index.html` in order: `eligibility.js` →
-`germline.js` → `hematologic.js` → `ui.js` → `app.js`. All functions are global
-scope (no modules/bundler). Data and pure logic live in the three domain files;
-`ui.js` owns everything that touches the DOM.
+`germline.js` → `hematologic.js` → `workflow.js` → `ui.js` → `workflow-ui.js` →
+`app.js`. All functions are global scope (no modules/bundler). Data and pure logic
+live in the domain files; `ui.js` and `workflow-ui.js` own everything that touches
+the DOM.
 
 ### Tab 1 — CCO Eligibility Criteria (`js/eligibility.js`)
 
@@ -107,7 +110,33 @@ Key functions:
   needed (loading, manual P/LP review, flowchart questions); otherwise the
   summary table (whose ClinVar pill links to the record) covers it
 
-### Tab 3 — Hematologic Malignancies (`js/hematologic.js`)
+### Tab 3 — Solid Tumour Variants, Local Workflow (`js/workflow.js`, `js/workflow-ui.js`)
+
+An editable copy of the Tab 2 flowchart. Tab 2 is never changed by it. The tree's
+shape is fixed (P/LP → main list or founder → age-dependent list → age cutoff →
+Box A / clinical suspicion); users edit what is inside: genes in each list, per-gene
+conditions (`CONDITION_TYPES`: tumour only / excluding / age ≤ N / custom yes-no
+question; AND logic; on fail continue or clinical judgement), the age cutoff, the
+age-criterion exception and Box A, and local notes.
+
+- `originalWorkflow()` — the built-in flowchart as a workflow (from `mainGenes`,
+  `ageGenes`, `boxA` + `originalConditions`). Unedited, `evaluateWorkflowVariant()`
+  must give exactly the same questions and results as `evaluateVariant()` for every
+  gene and answer path — re-check this after changing either.
+- Guideline rationale/citations are used only for genes whose rule matches the
+  built-in one (`mainRuleIsOriginal`, `ageExclusionIsOriginal`, `boxAIsOriginal`,
+  compared against germline.js, never taken from the file). Anything edited or added
+  cites "Local workflow: <name>" instead. `workflowDifferences()` lists every change
+  and is shown in the tree and above the results (so the PDF records it).
+- `validateWorkflow()` checks every uploaded file, browser-stored workflow and Apply.
+  All workflow text is user-supplied: escape it (`escHtml`) before it reaches HTML.
+- Saving: "Download file" / "Load file" (JSON, `format: octane-solid-tumour-workflow`,
+  `schema: 1`), plus saved workflows and a default in `localStorage`
+  (`octane.localWorkflows.v1`). No accounts.
+- The Run variants view reuses the germline UI in `ui.js` through `germlineViews`
+  (`std` = Tab 2, `local` = this tab); each view has its own ids, states, evaluator.
+
+### Tab 4 — Hematologic Malignancies (`js/hematologic.js`)
 
 Panel selection for hereditary hematologic malignancy (HHM).
 
@@ -130,6 +159,8 @@ All fonts and styling are local CSS in `index.html`; there is no Tailwind.
 
 ## Important Constraints
 
-- **No patient data persistence:** The app is intentionally stateless — no localStorage, no backend, no cookies.
+- **No patient data persistence:** No backend, no cookies, and nothing about patients
+  is ever stored. The one exception to "no localStorage" is the Local Workflow tab,
+  which stores workflows (rules only, never patient data) — keep it that way.
 - **Clinical accuracy matters:** Changes to eligibility criteria logic or germline recommendation rules must be treated carefully. The data objects (`dxCategories`, `contextGenes`, `hhmMatrix`, etc.) reflect clinical guidelines — don't modify them without explicit instruction.
 - **Prototype disclaimer:** A "not for clinical use" modal shows on every load. It lives in `index.html` and its dismiss button removes the node inline, so it works even if scripts fail — keep that property.

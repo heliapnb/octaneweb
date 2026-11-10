@@ -446,6 +446,20 @@ function showPolyposisTable() {
 
 // ─── GERMLINE UI ─────────────────────────────────────────────────────────────
 
+// The variant input, cards and results below serve two tabs: the original Solid
+// Tumour tab ('std') and the Local Workflow tab ('local', registered by
+// workflow-ui.js). Each view has its own element ids, variant states and evaluator.
+// Elements inside a view's input area find it through their container's data-view.
+const germlineViews = {
+    std: {
+        ids: { rows: 'gVariantRows', cards: 'gVariantCards', empty: 'gEmptyState', content: 'gResultContent' },
+        states: [],
+        evaluate: evaluateVariant,
+        genes: () => allGenes
+    }
+};
+const viewOf = el => el.closest('[data-view]')?.dataset.view || 'std';
+
 // ── Variant input rows ──
 
 function buildVariantRowHtml() {
@@ -467,11 +481,12 @@ function buildVariantRowHtml() {
 function showGeneSuggest(input) {
     const box = input.parentElement.querySelector('[data-gene-suggest]');
     if (!box) return;
+    const genes = germlineViews[viewOf(input)].genes();
     const val = input.value.trim().toUpperCase();
     const matches = val
-        ? allGenes.filter(g => g.toUpperCase().startsWith(val)).concat(
-            allGenes.filter(g => !g.toUpperCase().startsWith(val) && g.toUpperCase().includes(val)))
-        : allGenes.slice();
+        ? genes.filter(g => g.toUpperCase().startsWith(val)).concat(
+            genes.filter(g => !g.toUpperCase().startsWith(val) && g.toUpperCase().includes(val)))
+        : genes.slice();
     if (!matches.length) { hideGeneSuggest(box); return; }
     box.innerHTML = matches.map(g =>
         `<div class="o-gene-suggest-item" onmousedown="pickGene(event, this)">${g}</div>`).join('');
@@ -550,26 +565,27 @@ function normalizeCDNAInput(input) {
     }
 }
 
-function addVariantRow() {
-    const c = document.getElementById('gVariantRows');
+function addVariantRow(v = 'std') {
+    const c = document.getElementById(germlineViews[v].ids.rows);
     if (!c) return;
     c.insertAdjacentHTML('beforeend', buildVariantRowHtml());
-    updateRowRemoveButtons();
+    updateRowRemoveButtons(v);
     const lastRow = c.lastElementChild;
     if (lastRow) lastRow.querySelector('[data-gene]').focus();
 }
 
 function removeVariantRow(btn) {
-    const c = document.getElementById('gVariantRows');
+    const v = viewOf(btn);
+    const c = document.getElementById(germlineViews[v].ids.rows);
     if (!c) return;
     const rows = c.querySelectorAll('[data-vrow]');
     if (rows.length <= 1) return;
     btn.closest('[data-vrow]').remove();
-    updateRowRemoveButtons();
+    updateRowRemoveButtons(v);
 }
 
-function updateRowRemoveButtons() {
-    const c = document.getElementById('gVariantRows');
+function updateRowRemoveButtons(v = 'std') {
+    const c = document.getElementById(germlineViews[v].ids.rows);
     if (!c) return;
     const rows = c.querySelectorAll('[data-vrow]');
     rows.forEach(row => {
@@ -578,8 +594,8 @@ function updateRowRemoveButtons() {
     });
 }
 
-function readVariantInputs() {
-    const c = document.getElementById('gVariantRows');
+function readVariantInputs(v = 'std') {
+    const c = document.getElementById(germlineViews[v].ids.rows);
     if (!c) return [];
     const rows = c.querySelectorAll('[data-vrow]');
     return Array.from(rows).map(row => ({
@@ -588,19 +604,20 @@ function readVariantInputs() {
     })).filter(r => r.gene || r.coding);
 }
 
-function initVariantInput() {
-    const c = document.getElementById('gVariantRows');
+function initVariantInput(v = 'std') {
+    const c = document.getElementById(germlineViews[v].ids.rows);
     if (!c) return;
     if (!c.querySelector('[data-vrow]')) {
         c.innerHTML = buildVariantRowHtml();
     }
-    updateRowRemoveButtons();
+    updateRowRemoveButtons(v);
 }
 
 // ── Lookup orchestration ──
 
-async function lookupAllVariants() {
-    const inputs = readVariantInputs();
+async function lookupAllVariants(v = 'std') {
+    const view = germlineViews[v];
+    const inputs = readVariantInputs(v);
     if (!inputs.length || !inputs.some(i => i.gene)) {
         alert('Please enter at least one variant.');
         return;
@@ -611,19 +628,20 @@ async function lookupAllVariants() {
         alert(`ClinVar lookup requires a cDNA change for each variant.\nMissing cDNA for: ${missingCoding.join(', ')}\n\nUse "Skip" to check gene recommendations without a specific variant.`);
         return;
     }
-    window.variantStates = states;
-    document.getElementById('gVariantCards').classList.remove('hidden');
-    resetRightPanel();
-    renderVariantCards();
+    view.states = states;
+    document.getElementById(view.ids.cards).classList.remove('hidden');
+    resetRightPanel(v);
+    renderVariantCards(v);
     for (let i = 0; i < states.length; i++) {
         await lookupSingleVariant(states[i]);
-        renderVariantCards();
-        updateResultsPanel();
+        renderVariantCards(v);
+        updateResultsPanel(v);
     }
 }
 
-function bypassAllVariants() {
-    const inputs = readVariantInputs();
+function bypassAllVariants(v = 'std') {
+    const view = germlineViews[v];
+    const inputs = readVariantInputs(v);
     if (!inputs.length || !inputs.some(i => i.gene)) {
         alert('Please enter at least one variant.');
         return;
@@ -634,43 +652,43 @@ function bypassAllVariants() {
         s.plpConfirmed = true;
         return s;
     });
-    window.variantStates = states;
-    document.getElementById('gVariantCards').classList.remove('hidden');
-    renderVariantCards();
-    updateResultsPanel();
+    view.states = states;
+    document.getElementById(view.ids.cards).classList.remove('hidden');
+    renderVariantCards(v);
+    updateResultsPanel(v);
 }
 
 // ─── STATE SETTERS ───────────────────────────────────────────────────────────
 
-function setVariantPLP(idx, confirmed) {
-    window.variantStates[idx].plpConfirmed = confirmed;
-    renderVariantCards();
-    updateResultsPanel();
+function setVariantPLP(v, idx, confirmed) {
+    germlineViews[v].states[idx].plpConfirmed = confirmed;
+    renderVariantCards(v);
+    updateResultsPanel(v);
 }
 
-function setVariantAnswer(idx, key, val) {
-    window.variantStates[idx].answers[key] = val;
-    renderVariantCards();
-    updateResultsPanel();
+function setVariantAnswer(v, idx, key, val) {
+    germlineViews[v].states[idx].answers[key] = val;
+    renderVariantCards(v);
+    updateResultsPanel(v);
 }
 
 // ─── CARD RENDERING ──────────────────────────────────────────────────────────
 
-function renderVariantCards() {
-    const container = document.getElementById('gVariantCards');
+function renderVariantCards(v = 'std') {
+    const container = document.getElementById(germlineViews[v].ids.cards);
     if (!container) return;
-    container.innerHTML = window.variantStates.map((s, i) => variantNeedsCard(s) ? renderVariantCard(s, i) : '').join('');
+    container.innerHTML = germlineViews[v].states.map((s, i) => variantNeedsCard(s, v) ? renderVariantCard(s, i, v) : '').join('');
 }
 
 // A card only appears while a variant needs input — lookup in progress or failed,
 // manual P/LP review, or flowchart questions. Otherwise the summary table covers it.
-function variantNeedsCard(state) {
+function variantNeedsCard(state, v = 'std') {
     if (!state.clinvarDone && state.plpConfirmed === null) return true;
     if (['error', 'none', 'conflicting', 'unknown'].includes(state.clinvarSignificance)) return true;
-    return evaluateVariant(state).questions.length > 0;
+    return germlineViews[v].evaluate(state).questions.length > 0;
 }
 
-function renderVariantCard(state, idx) {
+function renderVariantCard(state, idx, v) {
     const { gene, coding, clinvarDone, clinvarClass, clinvarSignificance, clinvarId, clinvarTotal, clinvarSummary, plpConfirmed } = state;
 
     // ── ClinVar section ──
@@ -708,14 +726,14 @@ function renderVariantCard(state, idx) {
                     <a href="https://varsome.com/" target="_blank" rel="noopener" class="o-extbtn">Varsome  ↗</a>
                 </div>
                 <div class="o-yn">
-                    <button onclick="setVariantPLP(${idx}, true)" class="o-yn-btn${yesActive ? ' is-yes-on' : ''}">P / LP</button>
-                    <button onclick="setVariantPLP(${idx}, false)" class="o-yn-btn${noActive ? ' is-no-on' : ''}">Not P / LP</button>
+                    <button onclick="setVariantPLP('${v}', ${idx}, true)" class="o-yn-btn${yesActive ? ' is-yes-on' : ''}">P / LP</button>
+                    <button onclick="setVariantPLP('${v}', ${idx}, false)" class="o-yn-btn${noActive ? ' is-no-on' : ''}">Not P / LP</button>
                 </div>
             </div>`;
     }
 
     // ── Flowchart questions (only if P/LP confirmed) ──
-    const contextHtml = plpConfirmed === true ? renderVariantContextSection(state, idx) : '';
+    const contextHtml = plpConfirmed === true ? renderVariantContextSection(state, idx, v) : '';
 
     return `
         <div class="o-vcard fade-in">
@@ -735,11 +753,11 @@ function renderVariantCard(state, idx) {
 
 // The flowchart (evaluateVariant) decides which questions apply; render them in order.
 // Footnotes on the recommendation appear in the summary table's rationale instead.
-function renderVariantContextSection(state, idx) {
-    return evaluateVariant(state).questions.map(q => renderQuestion(idx, q, state.answers[q.key])).join('');
+function renderVariantContextSection(state, idx, v) {
+    return germlineViews[v].evaluate(state).questions.map(q => renderQuestion(v, idx, q, state.answers[q.key])).join('');
 }
 
-function renderQuestion(idx, q, answer) {
+function renderQuestion(v, idx, q, answer) {
     const bullets = q.criteria ? `<ul class="o-qcrit">${q.criteria.map(c => `<li>${c}</li>`).join('')}</ul>` : '';
     const note = q.note ? `<p class="o-cv-note">${italicizeGenes(q.note)}</p>` : '';
     return `
@@ -749,30 +767,32 @@ function renderQuestion(idx, q, answer) {
             <p class="o-q-prompt" style="margin-bottom:10px;">${italicizeGenes(q.prompt)}</p>
             ${note}
             <div class="o-yn">
-                <button onclick="setVariantAnswer(${idx}, '${q.key}', 'yes')" class="o-yn-btn${answer === 'yes' ? ' is-yes-on' : ''}">Yes</button>
-                <button onclick="setVariantAnswer(${idx}, '${q.key}', 'no')" class="o-yn-btn${answer === 'no' ? ' is-no-on' : ''}">No</button>
+                <button onclick="setVariantAnswer('${v}', ${idx}, '${q.key}', 'yes')" class="o-yn-btn${answer === 'yes' ? ' is-yes-on' : ''}">Yes</button>
+                <button onclick="setVariantAnswer('${v}', ${idx}, '${q.key}', 'no')" class="o-yn-btn${answer === 'no' ? ' is-no-on' : ''}">No</button>
             </div>
         </div>`;
 }
 
 // ─── RESULTS PANEL ───────────────────────────────────────────────────────────
 
-function resetRightPanel() {
-    const empty = document.getElementById('gEmptyState');
-    const content = document.getElementById('gResultContent');
+function resetRightPanel(v = 'std') {
+    const { ids } = germlineViews[v];
+    const empty = document.getElementById(ids.empty);
+    const content = document.getElementById(ids.content);
     if (empty) empty.classList.remove('hidden');
     if (content) { content.classList.add('hidden'); content.innerHTML = ''; }
 }
 
-function updateResultsPanel() {
-    const empty = document.getElementById('gEmptyState');
-    const content = document.getElementById('gResultContent');
+function updateResultsPanel(v = 'std') {
+    const view = germlineViews[v];
+    const empty = document.getElementById(view.ids.empty);
+    const content = document.getElementById(view.ids.content);
     if (!content) return;
 
-    const states = window.variantStates;
+    const states = view.states;
     if (!states || !states.length) return;
 
-    const pairs = states.map(s => ({ state: s, result: evaluateVariant(s).result }));
+    const pairs = states.map(s => ({ state: s, result: view.evaluate(s).result }));
     const anyComputed = pairs.some(p => p.result && !p.result.pending);
     if (!anyComputed) return;
 
@@ -868,6 +888,7 @@ function updateResultsPanel() {
 
     content.innerHTML = `
         <div class="o-result-stack fade-in">
+            ${view.resultHeader ? view.resultHeader() : ''}
             <div class="o-table-wrap">
                 <div class="o-table-title">Variant Summary</div>
                 <table class="o-table">

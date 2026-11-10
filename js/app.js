@@ -22,7 +22,7 @@
 
 // --- TAB NAVIGATION ---
 function switchTab(t) {
-    ['eligibility', 'germline', 'hhm'].forEach(id => {
+    ['eligibility', 'germline', 'local', 'hhm'].forEach(id => {
         const tab = document.getElementById(`tab-${id}`);
         const sec = document.getElementById(`sec-${id}`);
         if (tab) tab.classList.toggle('on', id === t);
