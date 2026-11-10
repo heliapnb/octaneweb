@@ -1117,6 +1117,323 @@
     /* ─── Result content stacking ──────────────────────────── */
     .o-result-stack > * + * { margin-top: 0; }
 
+
+    /* ─── Local workflow tab ───────────────────────────────── */
+    .o-wf-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      margin-bottom: 18px;
+    }
+    .o-wf-bar-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .o-wf-name {
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .o-wf-meta { font-size: 12px; color: var(--mute); font-style: italic; margin-top: 2px; }
+    .o-wf-actions { display: flex; flex-wrap: wrap; gap: 6px; max-width: 560px; justify-content: flex-end; }
+    .o-wf-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--ink-soft);
+      padding: 6px 11px;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .o-wf-btn:hover:not([disabled]) { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .o-wf-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+    .o-wf-btn.is-danger { color: var(--danger); border-color: var(--danger); }
+    .o-wf-btn.is-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .o-wf-notice {
+      margin-top: 12px;
+      padding: 9px 12px;
+      font-size: 13px;
+      background: var(--bg-softer);
+      border-left: 3px solid var(--mute-fade);
+      color: var(--ink-soft);
+    }
+    .o-wf-notice.is-error { background: var(--danger-bg); border-left-color: var(--danger); color: var(--danger); }
+    .o-wf-notice ul, .o-wf-err ul { margin: 4px 0 0 18px; }
+    .o-wf-saved { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-fade); }
+    .o-wf-saved-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-fade);
+      flex-wrap: wrap;
+    }
+    .o-wf-saved-row:last-child { border-bottom: none; }
+    .o-wf-saved-name { font-weight: 600; color: var(--ink); }
+    .o-wf-saved-date { font-weight: 400; font-size: 12px; color: var(--mute-light); font-style: italic; margin-left: 8px; }
+    .o-wf-saved-actions { display: flex; gap: 6px; }
+    .o-wf-tag {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid var(--success);
+    }
+    .o-wf-tag.is-open { background: var(--bg-softer); color: var(--mute); border-color: var(--border); }
+
+    .o-wf-switch { display: flex; margin-bottom: 18px; border-bottom: 1px solid var(--border-soft); }
+    .o-wf-switch button {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 8px 2px;
+      margin-right: 24px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      color: var(--mute-light);
+      cursor: pointer;
+    }
+    .o-wf-switch button.on { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+
+    .o-wf-viewbar, .o-wf-editbar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .o-wf-viewbar .o-btn { align-self: flex-start; }
+    .o-wf-editbar {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn);
+      padding: 14px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .o-wf-editbar-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+    .o-wf-namefield { flex: 1; min-width: 220px; display: flex; flex-direction: column; }
+    .o-wf-editbar-btns { display: flex; gap: 8px; }
+    .o-wf-editbar .o-hint { margin: 0; }
+    .o-wf-input {
+      width: 100%;
+      padding: 8px 10px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      outline: none;
+    }
+    .o-wf-input:focus { border-color: var(--ink); }
+    textarea.o-wf-input { resize: vertical; line-height: 1.45; }
+    .o-wf-err { margin-top: 8px; font-size: 13px; color: var(--danger); }
+    .o-wf-err .o-wf-btn { margin-left: 6px; }
+
+    /* Decision tree */
+    .o-tree { display: flex; flex-direction: column; }
+    .o-tstep {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 250px;
+      gap: 18px;
+      align-items: center;
+    }
+    .o-tnode { background: var(--bg-card); border: 1px solid #1f4e79; }
+    .o-tnode-q {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      background: #1f4e79;
+      color: #fff;
+      padding: 10px 14px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .o-tnum {
+      flex: 0 0 auto;
+      display: inline-block;
+      min-width: 22px;
+      padding: 0 6px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.6);
+      font-size: 12px;
+    }
+    .o-tnode-body { padding: 12px 14px; }
+    .o-tside { display: flex; flex-direction: column; gap: 10px; }
+    .o-tout-wrap { display: flex; align-items: center; gap: 8px; }
+    .o-tarrow { flex: 0 0 auto; font-weight: 700; font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+    .o-tout {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+    .o-tout.is-yes { background: var(--success-bg); border-color: var(--success); color: var(--success); }
+    .o-tout.is-no { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+    .o-tout.is-next { background: var(--bg-softer); border-color: var(--border); color: var(--mute); }
+    .o-tdown { padding: 6px 0 6px 28px; font-weight: 700; font-size: 13px; color: var(--ink-soft); }
+    .o-tdown-arrow { font-size: 17px; margin-right: 8px; }
+    @media (max-width: 760px) {
+      .o-tstep { grid-template-columns: 1fr; gap: 8px; }
+    }
+
+    .o-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .o-chip {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
+      padding: 3px 8px;
+      border: 1px solid var(--border-soft);
+      background: var(--bg-softer);
+      font-size: 14px;
+      color: var(--ink);
+    }
+    .o-chip i { font-weight: 600; }
+    .o-chip.is-added { border-color: var(--success); background: var(--success-bg); }
+    .o-chip.is-edited { border-color: var(--warn); background: var(--warn-bg); }
+    .o-chip.is-editable { padding: 0; }
+    .o-chip-main {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
+      padding: 3px 4px 3px 8px;
+      background: none;
+      border: none;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+    }
+    .o-chip-main:hover i { text-decoration: underline; }
+    .o-chip-x {
+      background: none;
+      border: none;
+      padding: 0 7px;
+      font-size: 17px;
+      line-height: 1;
+      color: var(--mute-light);
+      cursor: pointer;
+    }
+    .o-chip-x:hover { color: var(--danger); }
+    .o-chip-cond { font-size: 11px; color: var(--mute); font-style: italic; }
+    .o-chip-tag {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0 4px;
+      color: #fff;
+    }
+    .o-chip-tag.is-added { background: var(--success); }
+    .o-chip-tag.is-edited { background: var(--warn); }
+    .o-wf-empty, .o-wf-none { font-size: 13px; color: var(--mute-light); font-style: italic; }
+    .o-wf-removed { margin-top: 10px; font-size: 13px; color: var(--mute); }
+    .o-wf-restore {
+      background: none;
+      border: 1px dashed var(--border);
+      padding: 1px 6px;
+      margin-left: 3px;
+      font: inherit;
+      color: var(--ink-soft);
+      cursor: pointer;
+    }
+    .o-wf-restore:hover { border-color: var(--ink); color: var(--ink); }
+    .o-wf-add { display: flex; gap: 6px; margin-top: 12px; max-width: 360px; }
+    .o-wf-rules { margin: 12px 0 0 18px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+    .o-wf-rules li { margin-bottom: 4px; }
+    .o-wf-rules ul { margin: 2px 0 2px 16px; }
+    .o-wf-builtin { color: var(--mute); }
+    .o-wf-foot { margin-top: 10px; font-size: 12px; color: var(--mute); font-style: italic; }
+    .o-wf-age {
+      width: 62px;
+      padding: 1px 4px;
+      font: inherit;
+      color: var(--ink);
+      border: 1px solid #fff;
+    }
+    .o-wf-boxa { margin-top: 22px; }
+    .o-wf-boxa table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    .o-wf-boxa td { padding: 6px 8px; vertical-align: top; border-bottom: 1px solid var(--border-fade); }
+    .o-wf-boxa td:first-child { width: 110px; }
+    .o-wf-boxa ul { margin-left: 16px; }
+    .o-wf-diffs { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--border-soft); font-size: 13px; }
+    .o-wf-diffs ul { margin-left: 18px; }
+
+    /* Workflow label above the local results table */
+    .o-wf-label {
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      background: var(--bg-softer);
+      border: 1px solid var(--border-soft);
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .o-wf-label.is-custom { background: var(--warn-bg); border-color: var(--warn); }
+    .o-wf-label ul { margin: 4px 0 0 18px; }
+
+    /* Gene editor modal */
+    .o-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(17,24,39,0.45);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    .o-modal {
+      background: var(--bg-card);
+      max-width: 640px;
+      width: 100%;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .o-modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: var(--bg-soft);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .o-modal-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--ink); }
+    .o-modal-close { background: none; border: none; font-size: 26px; line-height: 1; color: var(--mute); cursor: pointer; }
+    .o-modal-body { padding: 18px 20px; }
+    .o-modal-body .o-wf-notice { margin: 0 0 14px; }
+    .o-modal-foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-soft);
+    }
+    .o-modal-foot > div { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .o-modal-foot .o-btn { padding: 9px 18px; }
+    .o-wf-cond { border: 1px solid var(--border-soft); background: var(--bg-softer); padding: 10px 12px; margin-bottom: 10px; }
+    .o-wf-cond-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .o-wf-field { display: block; margin-top: 8px; }
+    .o-wf-field > span { display: block; font-size: 12px; color: var(--mute); margin-bottom: 3px; }
+    .o-wf-radio { display: flex; gap: 8px; align-items: baseline; font-size: 14px; margin-top: 6px; cursor: pointer; }
+
     /* ─── Animations ───────────────────────────────────────── */
     .fade-in { animation: fade-in 0.25s ease-out; }
     @keyframes fade-in {
@@ -1153,6 +1470,13 @@
       #hhmQuestions,
       .o-hhm-dx,
       #sec-hhm .o-hint,
+      .o-wf-noprint,
+      #sec-local .o-lbl,
+      #sec-local .o-hint,
+      #lVariantRows,
+      #lVariantCards,
+      #lEmptyState,
+      .o-modal-overlay,
       .o-disclaimer-overlay {
         display: none !important;
       }
@@ -1160,6 +1484,7 @@
       /* HHM: the live controls are hidden above, so print the plain-text
          restatement of the entered case instead */
       .o-print-only { display: block !important; }
+      .o-tnode-q .o-print-only { display: inline !important; }
 
       /* Header tightened, keeps brand */
       .o-header {
@@ -1186,6 +1511,8 @@
       .o-germline-grid > div,
       #gOutput,
       #gResultContent,
+      #lOutput,
+      #lResultContent,
       .o-result-stack {
         display: block !important;
         position: static !important;
@@ -1197,9 +1524,10 @@
 
       /* Page-break hints — keep small things together but let the
          banner flow naturally across pages if its rationale is long */
-      .o-verdict, .o-vcard, .o-table tr {
+      .o-verdict, .o-vcard, .o-table tr, .o-tstep, .o-wf-boxa {
         page-break-inside: avoid;
       }
+      .o-tside { display: block; }
       .o-banner-head {
         page-break-after: avoid;
       }
@@ -1211,7 +1539,8 @@
       .o-cv-pill, .o-td-badge, .o-banner-badge, .o-verdict-badge,
       .o-vcard-head, .o-table th, .o-table-title,
       .o-banner.is-success, .o-banner.is-danger, .o-banner.is-warn, .o-banner.is-pending,
-      .o-verdict.is-success, .o-verdict.is-danger {
+      .o-verdict.is-success, .o-verdict.is-danger,
+      .o-tnode-q, .o-tout, .o-chip, .o-chip-tag, .o-wf-label {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
@@ -1233,6 +1562,7 @@
 <nav class="o-tabs">
   <button onclick="switchTab('eligibility')" id="tab-eligibility" class="o-tab on">CCO Eligibility Criteria for Germline Testing</button>
   <button onclick="switchTab('germline')" id="tab-germline" class="o-tab">Solid Tumour Variants — Germline Confirmation</button>
+  <button onclick="switchTab('local')" id="tab-local" class="o-tab">Solid Tumour Variants — Local Workflow</button>
   <button onclick="switchTab('hhm')" id="tab-hhm" class="o-tab">Hematologic Malignancies</button>
 </nav>
 
@@ -1267,7 +1597,7 @@
       <div>
         <div class="o-lbl">Tumour Variant(s)</div>
         <p class="o-hint">Enter the gene name and the cDNA notation for each variant to see the recommendations for germline confirmation. Example: <span class="gene">BRCA1</span> <span class="mono">c.5266dupC</span></p>
-        <div id="gVariantRows"></div>
+        <div id="gVariantRows" data-view="std"></div>
         <button onclick="addVariantRow()" class="o-add-btn">+ Add another variant</button>
         <div class="o-btn-row">
           <button onclick="lookupAllVariants()" class="o-btn">Look Up in ClinVar</button>
@@ -1292,6 +1622,53 @@
       Variant classifications retrieved from
       <a href="https://www.ncbi.nlm.nih.gov/clinvar/" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: none;">NCBI ClinVar</a>.
       Primary data are obtained from the National Center for Biotechnology Information, U.S. National Library of Medicine.
+    </footer>
+  </section>
+
+  <!-- ─── LOCAL WORKFLOW (editable solid-tumour flowchart) ──── -->
+  <section id="sec-local" class="o-section is-hidden">
+    <div id="wfBar"></div>
+
+    <div class="o-wf-switch o-wf-noprint" role="tablist">
+      <button id="wfViewTree" onclick="setWorkflowView('tree')" class="on">Decision tree</button>
+      <button id="wfViewRun" onclick="setWorkflowView('run')">Run variants</button>
+    </div>
+
+    <div id="wfTreeView">
+      <div id="wfTree"></div>
+    </div>
+
+    <div id="wfRunView" class="hidden">
+      <div class="o-germline-grid">
+        <div>
+          <div class="o-lbl">Tumour Variant(s)</div>
+          <p class="o-hint">Recommendations here follow the active local workflow shown above. Example: <span class="gene">BRCA1</span> <span class="mono">c.5266dupC</span></p>
+          <div id="lVariantRows" data-view="local"></div>
+          <button onclick="addVariantRow('local')" class="o-add-btn">+ Add another variant</button>
+          <div class="o-btn-row">
+            <button onclick="lookupAllVariants('local')" class="o-btn">Look Up in ClinVar</button>
+            <button onclick="bypassAllVariants('local')" class="o-btn o-btn-secondary">Skip — Genes Only</button>
+          </div>
+          <div id="lVariantCards" class="hidden"></div>
+        </div>
+        <div>
+          <div id="lOutput">
+            <div id="lEmptyState" class="o-empty">
+              <div class="o-empty-title">Awaiting lookup</div>
+              <div class="o-empty-sub">Enter variant(s) and look up in ClinVar to begin.</div>
+            </div>
+            <div id="lResultContent" class="hidden"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" id="wfFileInput" accept=".json,application/json" class="hidden" onchange="loadWorkflowFile(this)">
+
+    <footer style="margin: 24px auto 0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.5; border-top: 1px solid #e2e8f0;">
+      A local workflow is an editable copy of the OCTANE solid-tumour flowchart. Workflows saved on this computer stay in this browser, and downloaded files stay wherever you keep them — nothing is sent anywhere.
+      Variant classifications retrieved from
+      <a href="https://www.ncbi.nlm.nih.gov/clinvar/" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: none;">NCBI ClinVar</a>.
     </footer>
   </section>
 
@@ -1323,7 +1700,7 @@
 
 </main>
 
-<!-- Prototype disclaimer — shown on every load/refresh (the app stores no state).
+<!-- Prototype disclaimer — shown on every load/refresh (the app stores no patient data).
      The dismiss button removes the node inline so it works even if scripts fail. -->
 <div class="o-disclaimer-overlay" id="disclaimerOverlay" role="dialog" aria-modal="true" aria-labelledby="disclaimerTitle">
   <div class="o-disclaimer">
@@ -1344,7 +1721,9 @@
 <script src="js/eligibility.js"></script>
 <script src="js/germline.js"></script>
 <script src="js/hematologic.js"></script>
+<script src="js/workflow.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/workflow-ui.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
